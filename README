@@ -1,0 +1,22 @@
+dotMailer Python API Wrapper 0.1
+-------------------------------------------------------------------------------
+This folder got from Github, TriggeredMessaging/pydotmailer
+
+
+todo finish these!
+
+API Version: 0.1
+Tested under: Python 2.7
+
+Requires:
+    * Python 2.5
+
+Example Usage
+------------------
+TODO
+
+===== Advanced Options =====
+SSL support
+------------------
+TODO
+
