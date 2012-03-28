@@ -32,6 +32,8 @@ logger = tms_init_logging("test_api_token_handling")
 class Secrets():
     api_username = "apiuser-1234567890@apiconnector.com"
     api_password = "sd234lkj2"
+    campaign_id = 1234567 # a test campaign to be sent by the tests
+    
 """
 from secrets import Secrets
 
@@ -56,11 +58,56 @@ class TestPyDotMailer(TMSBaseTestCase):
         # must be an address book specially created for cart abandonmenr, cannot use the built-in address books like "test"
         s_contacts = open(self.resolve_relative_path(__file__,contacts_filename), 'r').read()
 
-        dict_result = mailer.add_contacts_to_address_book(address_book_id, s_contacts, wait_to_complete_seconds=20)
+        dict_result = mailer.add_contacts_to_address_book(address_book_id=address_book_id, s_contacts=s_contacts, wait_to_complete_seconds=20)
 
         if not dict_result.get('ok'):
             logger.error("Failure return: %s" % (dict_result) )
         self.assertTrue(dict_result.get('ok'), 'add_contacts_to_address_book returned failure ')
+
+
+        # =======
+        email = 'test@blackhole.triggeredmessaging.com'
+        dict_result = mailer.get_contact_by_email(email)
+        
+        """ dict_result.get('result') is of type 'instance' and contains e.g. 
+        (APIContact){
+   ID = 367568124
+   Email = "test@blackhole.triggeredmessaging.com"
+   AudienceType = "Unknown"
+   DataFields = 
+      (ContactDataFields){
+         Keys = 
+            (ArrayOfString){
+               string[] = 
+                  "FIRSTNAME",
+                  "FULLNAME",
+                  "GENDER",
+                  "LASTNAME",
+                  "POSTCODE",
+            }
+         Values = 
+            (ArrayOfAnyType){
+               anyType[] = 
+                  None,
+                  None,
+                  None,
+                  None,
+            }
+      }
+   OptInType = "Unknown"
+   EmailType = "Html"
+   Notes = None
+   """
+        # dict_result.get('result').AudienceType == "Unknown"
+      
+        campaign_id = Secrets.campaign_id
+        contact_id = dict_result.get('result').ID
+        send_date = None
+
+        # todo http://www.iso.org/iso/date_and_time_format
+        #send_date="2012-03-28T19:51:00"
+        dict_result = mailer.send_campaign_to_contact(campaign_id=campaign_id, contact_id=contact_id) # , send_date=send_date)
+        self.assertTrue(dict_result.get('ok'), "sending single message failed")
 
         logger.info('All done, exiting. ')
 

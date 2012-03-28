@@ -18,7 +18,11 @@ __version__ = '0.1.1'
 try:
     import simplejson as json
 except ImportError:
-    import json
+    import json # fall back to traditional json module. 
+    
+import logging
+logger = logging.getLogger(__name__)
+
 
 class PyDotMailer(object):
     version = '0.1'
@@ -99,6 +103,45 @@ class PyDotMailer(object):
             dict_result = {'ok':False, 'result': return_code }
             
         return dict_result
+
+    def send_campaign_to_contact(self, campaign_id, contact_id, send_date=datetime.utcnow()):
+        """
+        @param int campaign_id
+        @param int contact_id
+        @param datetime date/time in server time when the campaign should be sent. 
+        
+        http://www.dotmailer.co.uk/api/campaigns/send_campaign_to_contact.aspx
+        """    
+        
+        # format the date in ISO format for sending via SOAP call. 
+        iso_send_date = self.dt_to_iso_date( send_date)
+        return_code = self.client.service.SendCampaignToContact(username=self.api_username, password=self.api_password, 
+                        campaignId= campaign_id, contactid=contact_id, sendDate=iso_send_date) #todo report inconsistent case to dm
+        dict_result = {'ok':True, 'result': return_code }
+        return dict_result
+
+    def get_contact_by_email(self, email):
+        """
+        @param string email address to search for. 
+            http://www.dotmailer.co.uk/api/contacts/get_contact_by_email.aspx
+        """
+        return_code = self.client.service.GetContactByEmail(username=self.api_username, password=self.api_password, 
+                        email=email)
+        dict_result = {'ok':True, 'result': return_code }
+        return dict_result
+
+
+    def dt_to_iso_date(self, dt):
+        """ convert a python datetime to an iso date, e.g. "2012-03-28T19:51:00"
+        ready to send via SOAP
+        """
+        try:
+            iso_dt = dt.strftime('%Y-%m-%dT%H:%M:%S')
+        except:
+            logger.exception('Exception converting dt to iso')
+            iso_dt = None
+        return iso_dt
+
     
     def setTimeout(self, seconds):
         self.timeout = seconds
