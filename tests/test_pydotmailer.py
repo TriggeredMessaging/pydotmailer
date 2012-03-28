@@ -27,6 +27,13 @@ from tms_logging.stack_logging import StackLoggingHandler, StackLoggingFormatter
 logger = tms_init_logging("test_api_token_handling")
 
 
+"""
+ to go with these tests, you will need a file called secrets.py with details of your dotMailer account. The contents should be of the form:
+class Secrets():
+    api_username = "apiuser-1234567890@apiconnector.com"
+    api_password = "sd234lkj2"
+"""
+from secrets import Secrets
 
 class TestPyDotMailer(TMSBaseTestCase):
     def setUp(self):
@@ -43,7 +50,7 @@ class TestPyDotMailer(TMSBaseTestCase):
         """ Test function to todo. """
         logger.info("test_api_tokens starting")
 
-        mailer = PyDotMailer()
+        mailer = PyDotMailer(api_username = Secrets.api_username, api_password=Secrets.api_password )
         contacts_filename = "fixtures/test_contacts.csv"
         address_book_id = 615970 # comes from dotmailer UI, under Contacts, Edit Address Book. Look for the field with label "id"
         # must be an address book specially created for cart abandonmenr, cannot use the built-in address books like "test"

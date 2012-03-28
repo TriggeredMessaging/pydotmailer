@@ -30,3 +30,4 @@ lib-cov/
 *.tap
 python/tests/test-reports/
 results/
+tests/secrets.py

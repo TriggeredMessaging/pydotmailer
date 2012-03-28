@@ -28,7 +28,7 @@ class PyDotMailer(object):
     # Default to a 300 second timeout on server calls
     timeout = 300
     
-    def __init__(self, apikey='', secure=False, timeout=300):
+    def __init__(self, api_username='', api_password='', secure=False, timeout=300):
         '''
         Connect to the dotMailer API for a given list.
         
@@ -38,9 +38,6 @@ class PyDotMailer(object):
         
         self.apiUrl = 'todo' # urlparse('http://%s.api.mailchimp.com/%s/?output=json' % (datacenter, self.version))
         
-        # Cache the user api_key so we only have to log in once per client instantiation
-        self.api_key = apikey
-        
         # Default to a 300 second timeout on server calls
         self.timeout = timeout
         
@@ -49,8 +46,8 @@ class PyDotMailer(object):
 
         url = 'http://apiconnector.com/API.asmx?WSDL'
         self.client = SOAPClient(url)
-        self.api_username = "apiuser-29f9c2d73e88@apiconnector.com"
-        self.api_password = "ec5890a01b"
+        self.api_username = api_username
+        self.api_password = api_password
  
  
     def add_contacts_to_address_book(self, address_book_id, s_contacts):
