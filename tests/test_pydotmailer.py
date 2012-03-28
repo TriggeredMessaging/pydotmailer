@@ -56,7 +56,11 @@ class TestPyDotMailer(TMSBaseTestCase):
         # must be an address book specially created for cart abandonmenr, cannot use the built-in address books like "test"
         s_contacts = open(self.resolve_relative_path(__file__,contacts_filename), 'r').read()
 
-        ret = mailer.add_contacts_to_address_book(address_book_id, s_contacts)
+        dict_result = mailer.add_contacts_to_address_book(address_book_id, s_contacts, wait_to_complete_seconds=20)
+
+        if not dict_result.get('ok'):
+            logger.error("Failure return: %s" % (dict_result) )
+        self.assertTrue(dict_result.get('ok'), 'add_contacts_to_address_book returned failure ')
 
         logger.info('All done, exiting. ')
 
