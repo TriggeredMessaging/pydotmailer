@@ -1,0 +1,16 @@
+Metadata-Version: 1.0
+Name: pydotmailer
+Version: 0.1
+Summary: A reusable python module for driving the dotMailer API
+Home-page: http://github.com/TriggeredMessaging/pydotmailer/
+Author: Mike Austin at Triggered Messaging
+Author-email: mike.austin2012@triggeredmessaging.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
