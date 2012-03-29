@@ -28,12 +28,12 @@ class PyDotMailer(object):
     version = '0.1'
     
     # Cache the information on the API location on the server
-    apiUrl = ''
+    api_url = ''
     
-    # Default to a 300 second timeout on server calls
+    # Default to a 300 second timeout on server calls. Not used at present. 
     timeout = 300
     
-    def __init__(self, api_username='', api_password='', secure=False, timeout=300):
+    def __init__(self, api_username='', api_password='', secure=True, timeout=300):
         '''
         Connect to the dotMailer API for a given list.
         
@@ -41,16 +41,17 @@ class PyDotMailer(object):
         @param string $secure Whether or not this should use a secure connection
         '''
         
-        self.apiUrl = 'todo' # urlparse('http://%s.api.mailchimp.com/%s/?output=json' % (datacenter, self.version))
-        
-        # Default to a 300 second timeout on server calls
+        # Default to a 300 second timeout on server calls. Not used at present. TODO - implement.  
         self.timeout = timeout
         
         # Define whether we use SSL
         self.secure = secure or False
-
-        url = 'https://apiconnector.com/API.asmx?WSDL'
-        self.client = SOAPClient(url)
+        if secure:
+            self.api_url = 'https://apiconnector.com/API.asmx?WSDL'
+        else:
+            self.api_url = 'http://apiconnector.com/API.asmx?WSDL'
+            
+        self.client = SOAPClient(self.api_url)
         self.api_username = api_username
         self.api_password = api_password
  
@@ -61,8 +62,8 @@ class PyDotMailer(object):
         
         @param int the id of the address book
         @param string containing the contacts to be added. You may upload either a .csv or .xls file. It must contain one column with the heading "Email". Other columns must will attempt to map to your custom data fields.
-        @param into seconds to wait.  
-        @return boolean True on success
+        @param  seconds to wait.  
+        @return dict  e.g. {'progress_id': 15edf1c4-ce5f-42e3-b182-3b20c880bcf8, 'ok': True, 'result': Finished}
         
         http://www.dotmailer.co.uk/api/address_books/add_contacts_to_address_book_with_progress.aspx
         """
@@ -80,13 +81,14 @@ class PyDotMailer(object):
                 time.sleep(0.2)
             dict_result = return_code 
 
-    
-        return {'ok':True, 'progress_id': progress_id, 'return_code': return_code}
+        dict_result.update( {'progress_id': progress_id })
+
+        return dict_result #
  
     def get_contact_import_progress(self, progress_id):
         """
         @param int the progress_id from add_contacts_to_address_book
-        
+        @return dict  e.g. {'ok': False, 'result': NotFinished}    or    dict: {'ok': True, 'result': Finished}
         http://www.dotmailer.co.uk/api/contacts/get_contact_import_progress.aspx
         """
         return_code = self.client.service.GetContactImportProgress(username=self.api_username, password=self.api_password, 
@@ -103,19 +105,53 @@ class PyDotMailer(object):
         @param int campaign_id
         @param int contact_id
         @param datetime date/time in server time when the campaign should be sent. 
-        
+        @return dict  e.g. {'ok': True} or {'ok': False, 'result': <return code> }
         http://www.dotmailer.co.uk/api/campaigns/send_campaign_to_contact.aspx
         """    
         # format the date in ISO format, e.g. "2012-03-28T19:51:00" for sending via SOAP call. 
         iso_send_date = self.dt_to_iso_date( send_date)
         return_code = self.client.service.SendCampaignToContact(username=self.api_username, password=self.api_password, 
                         campaignId= campaign_id, contactid=contact_id, sendDate=iso_send_date) #todo report inconsistent case to dm
-        dict_result = {'ok':True, 'result': return_code }
+        if return_code:
+            # return code, which means an error 
+            dict_result = {'ok':False, 'result': return_code }
+        else:
+            # no return, which means no error. 
+            dict_result = {'ok':True }
+            
         return dict_result
 
     def get_contact_by_email(self, email):
         """
-        @param string email address to search for. 
+        @param string email address to search for.
+        @return dict  e.g. {'ok': True, 'result': (APIContact){
+                       ID = 367568124
+                       Email = "test@blackhole.triggeredmessaging.com" 
+                       AudienceType = "Unknown"
+                       DataFields = 
+                          (ContactDataFields){
+                             Keys = 
+                                (ArrayOfString){
+                                   string[] = 
+                                      "FIRSTNAME",
+                                      "FULLNAME",
+                                      "GENDER",
+                                      "LASTNAME",
+                                      "POSTCODE",
+                                }
+                             Values = 
+                                (ArrayOfAnyType){
+                                   anyType[] = 
+                                      None,
+                                      None,
+                                      None,
+                                      None,
+                                }
+                          }
+                       OptInType = "Unknown"
+                       EmailType = "Html"
+                       Notes = None
+                     }}                       
             http://www.dotmailer.co.uk/api/contacts/get_contact_by_email.aspx
         """
         return_code = self.client.service.GetContactByEmail(username=self.api_username, password=self.api_password, 
@@ -137,26 +173,15 @@ class PyDotMailer(object):
         return iso_dt
 
     
-    def setTimeout(self, seconds):
-        self.timeout = seconds
-    
-    def getTimeout(self):
-        return self.timeout
-    
-    def useSecure(self, val):
-        if val == True:
-            self.secure = True
-        else:
-            self.secure = False
 
 
 
-
-
+"""
+might implement a command line at some point. 
 def main():
     
     try:
-        addressbookid    = sys.argv[2]
+        addressbookid    = sys.argv[2] #should use argparse or similar. 
         contactsfilename = sys.argv[3]
     except IndexError:
         print "Usage: dotmailer addcontactstoaddressbook addressbookid contactsfilename\n"
@@ -165,3 +190,5 @@ def main():
     initial_data = open(contactsfilename, 'r').read()
 
     
+"""
+
