@@ -49,7 +49,7 @@ class PyDotMailer(object):
         # Define whether we use SSL
         self.secure = secure or False
 
-        url = 'http://apiconnector.com/API.asmx?WSDL'
+        url = 'https://apiconnector.com/API.asmx?WSDL'
         self.client = SOAPClient(url)
         self.api_username = api_username
         self.api_password = api_password
@@ -80,12 +80,6 @@ class PyDotMailer(object):
                 time.sleep(0.2)
             dict_result = return_code 
 
-        #mycount = 0
-        #for i in range(10):
-        #    mycount = getAddressBookContactCount(addressbookid)
-        #    if mycount > 0:
-        #        break 
-        #    time.sleep(1)
     
         return {'ok':True, 'progress_id': progress_id, 'return_code': return_code}
  
@@ -112,8 +106,7 @@ class PyDotMailer(object):
         
         http://www.dotmailer.co.uk/api/campaigns/send_campaign_to_contact.aspx
         """    
-        
-        # format the date in ISO format for sending via SOAP call. 
+        # format the date in ISO format, e.g. "2012-03-28T19:51:00" for sending via SOAP call. 
         iso_send_date = self.dt_to_iso_date( send_date)
         return_code = self.client.service.SendCampaignToContact(username=self.api_username, password=self.api_password, 
                         campaignId= campaign_id, contactid=contact_id, sendDate=iso_send_date) #todo report inconsistent case to dm
@@ -134,6 +127,7 @@ class PyDotMailer(object):
     def dt_to_iso_date(self, dt):
         """ convert a python datetime to an iso date, e.g. "2012-03-28T19:51:00"
         ready to send via SOAP
+        http://www.iso.org/iso/date_and_time_format
         """
         try:
             iso_dt = dt.strftime('%Y-%m-%dT%H:%M:%S')
@@ -156,28 +150,6 @@ class PyDotMailer(object):
             self.secure = False
 
 
-
-
-    def ping(self):
-        '''
-        "Ping" the dotMailer API - a simple method you can call that will return a constant value as long as everything is good. Note
-        than unlike most all of our methods, we don't throw an Exception if we are having issues. You will simply receive a different
-        string back that will explain our view on what is going on.
-        
-        @section Helper
-        @example xml-rpc_ping.php
-        
-        @return string returns "Everything's ok!" if everything is ok, otherwise returns an error message
-        '''
-        return self.callServer("ping")
-    
-
-    def call_server(self, method, params={}):
-        '''
-        Actually connect to the server and call the requested methods, parsing the result
-        You should never have to call this function manually
-        '''
-        pass
 
 
 

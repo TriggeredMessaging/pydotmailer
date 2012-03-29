@@ -71,41 +71,39 @@ class TestPyDotMailer(TMSBaseTestCase):
         
         """ dict_result.get('result') is of type 'instance' and contains e.g. 
         (APIContact){
-   ID = 367568124
-   Email = "test@blackhole.triggeredmessaging.com"
-   AudienceType = "Unknown"
-   DataFields = 
-      (ContactDataFields){
-         Keys = 
-            (ArrayOfString){
-               string[] = 
-                  "FIRSTNAME",
-                  "FULLNAME",
-                  "GENDER",
-                  "LASTNAME",
-                  "POSTCODE",
-            }
-         Values = 
-            (ArrayOfAnyType){
-               anyType[] = 
-                  None,
-                  None,
-                  None,
-                  None,
-            }
-      }
-   OptInType = "Unknown"
-   EmailType = "Html"
-   Notes = None
-   """
+               ID = 367568124
+               Email = "test@blackhole.triggeredmessaging.com"
+               AudienceType = "Unknown"
+               DataFields = 
+                  (ContactDataFields){
+                     Keys = 
+                        (ArrayOfString){
+                           string[] = 
+                              "FIRSTNAME",
+                              "FULLNAME",
+                              "GENDER",
+                              "LASTNAME",
+                              "POSTCODE",
+                        }
+                     Values = 
+                        (ArrayOfAnyType){
+                           anyType[] = 
+                              None,
+                              None,
+                              None,
+                              None,
+                        }
+                  }
+               OptInType = "Unknown"
+               EmailType = "Html"
+               Notes = None
+       """
         # dict_result.get('result').AudienceType == "Unknown"
       
         campaign_id = Secrets.campaign_id
         contact_id = dict_result.get('result').ID
         send_date = None
 
-        # todo http://www.iso.org/iso/date_and_time_format
-        #send_date="2012-03-28T19:51:00"
         dict_result = mailer.send_campaign_to_contact(campaign_id=campaign_id, contact_id=contact_id) # , send_date=send_date)
         self.assertTrue(dict_result.get('ok'), "sending single message failed")
 
