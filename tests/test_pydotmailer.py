@@ -45,20 +45,20 @@ class TestPyDotMailer(TMSBaseTestCase):
         #dir_test_code = os.path.dirname(__file__) # directory containing the current .py
         #self.start_server_process(['node', '%s/../../node/personServer/personServer.js' % (dir_test_code),'-n test_personServer','--debug','-r testserver', '-i 0'])
         #self.start_server_process(['python', self.resolve_relative_path(__file__,'../tms_api/tms_api_server_base.py' ),'-n test_api_server','--debug','-r testserver', '-i 0', '-s 18001', '-e 18199'])
+        self.dot_mailer = PyDotMailer(api_username = Secrets.api_username, api_password=Secrets.api_password )
         pass
     
                     
-    def test_pydotmailer(self):
-        """ Test function to todo. """
+    def test_add_contacts_to_address_book(self):
+        """ Test function to test add_contacts_to_address_book. """
         logger.info("test_api_tokens starting")
 
-        mailer = PyDotMailer(api_username = Secrets.api_username, api_password=Secrets.api_password )
         contacts_filename = "fixtures/test_contacts.csv"
         address_book_id = 615970 # comes from dotmailer UI, under Contacts, Edit Address Book. Look for the field with label "id"
         # must be an address book specially created for cart abandonmenr, cannot use the built-in address books like "test"
         s_contacts = open(self.resolve_relative_path(__file__,contacts_filename), 'r').read()
 
-        dict_result = mailer.add_contacts_to_address_book(address_book_id=address_book_id, s_contacts=s_contacts, wait_to_complete_seconds=20)
+        dict_result = self.dot_mailer.add_contacts_to_address_book(address_book_id=address_book_id, s_contacts=s_contacts, wait_to_complete_seconds=20)
 
         if not dict_result.get('ok'):
             logger.error("Failure return: %s" % (dict_result) )
@@ -66,8 +66,14 @@ class TestPyDotMailer(TMSBaseTestCase):
 
 
         # =======
+        
+    def test_get_and_send_single(self):
+        """ test function to test single contact functions e.g.
+        get_contact_by_email and send_campaign_to_contact
+        """
+        
         email = 'test@blackhole.triggeredmessaging.com'
-        dict_result = mailer.get_contact_by_email(email)
+        dict_result = self.dot_mailer.get_contact_by_email(email)
         
         """ dict_result.get('result') is of type 'instance' and contains e.g. 
         (APIContact){
@@ -104,7 +110,7 @@ class TestPyDotMailer(TMSBaseTestCase):
         contact_id = dict_result.get('result').ID
         send_date = None
 
-        dict_result = mailer.send_campaign_to_contact(campaign_id=campaign_id, contact_id=contact_id) # , send_date=send_date)
+        dict_result = self.dot_mailer.send_campaign_to_contact(campaign_id=campaign_id, contact_id=contact_id) # , send_date=send_date)
         self.assertTrue(dict_result.get('ok'), "sending single message failed")
 
         logger.info('All done, exiting. ')
