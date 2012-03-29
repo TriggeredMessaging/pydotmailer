@@ -1,7 +1,0 @@
-README
-setup.py
-pydotmailer.egg-info/PKG-INFO
-pydotmailer.egg-info/SOURCES.txt
-pydotmailer.egg-info/dependency_links.txt
-pydotmailer.egg-info/not-zip-safe
-pydotmailer.egg-info/top_level.txt
