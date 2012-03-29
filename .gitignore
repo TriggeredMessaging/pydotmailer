@@ -31,3 +31,4 @@ lib-cov/
 python/tests/test-reports/
 results/
 tests/secrets.py
+pydotmailer.egg-info*
