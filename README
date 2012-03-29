@@ -2,9 +2,6 @@ dotMailer Python API Wrapper 0.1
 -------------------------------------------------------------------------------
 This folder got from Github, TriggeredMessaging/pydotmailer
 
-
-todo finish these!
-
 API Version: 0.1
 Tested under: Python 2.7
 
@@ -13,10 +10,13 @@ Requires:
 
 Example Usage
 ------------------
-TODO
+self.dot_mailer = PyDotMailer(api_username = Secrets.api_username, api_password=Secrets.api_password )
+dict_result = self.dot_mailer.add_contacts_to_address_book(address_book_id=self.address_book_id, s_contacts='email\n%s\n' % email, wait_to_complete_seconds=20)
+
+More examples can be found in the tests. 
 
 ===== Advanced Options =====
 SSL support
 ------------------
-TODO
+SSL is used by default. An optional constructor parameter is available to disable this if required.  
 
