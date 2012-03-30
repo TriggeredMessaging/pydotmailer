@@ -22,6 +22,7 @@ class Secrets():
     api_password = "sd234lkj2"
     campaign_id = 1234567 # a test campaign to be sent by the tests
     test_address = 'blackhole@triggeredmessaging.com'
+    address_book_id = 565970
 """
 from secrets import Secrets
 
@@ -43,7 +44,7 @@ class TestPyDotMailer(TMSBaseTestCase):
         #self.start_server_process(['node', '%s/../../node/personServer/personServer.js' % (dir_test_code),'-n test_personServer','--debug','-r testserver', '-i 0'])
         #self.start_server_process(['python', self.resolve_relative_path(__file__,'../tms_api/tms_api_server_base.py' ),'-n test_api_server','--debug','-r testserver', '-i 0', '-s 18001', '-e 18199'])
         self.dot_mailer = PyDotMailer(api_username = Secrets.api_username, api_password=Secrets.api_password )
-        self.address_book_id = 615970 # comes from dotmailer UI, under Contacts, Edit Address Book. Look for the field with label "id"
+        self.address_book_id = Secrets.address_book_id # comes from dotmailer UI, under Contacts, Edit Address Book. Look for the field with label "id"
         # must be an address book specially created for your test purposes, cannot use the built-in address books like "test"
         pass
     
@@ -64,10 +65,11 @@ class TestPyDotMailer(TMSBaseTestCase):
 
         # =======
         
-    def test_get_and_send_single(self):
+    def test_add_and_send_single(self):
         """ test function to test single contact functions e.g.
         get_contact_by_email and send_campaign_to_contact
         """
+        logger.info("test_add_and_send_single starting")
         
         email = Secrets.test_address  
         # first ensure this address is in an address book. 

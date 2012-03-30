@@ -107,7 +107,7 @@ class PyDotMailer(object):
         @param datetime date/time in server time when the campaign should be sent. 
         @return dict  e.g. {'ok': True} or {'ok': False, 'result': <return code> }
         http://www.dotmailer.co.uk/api/campaigns/send_campaign_to_contact.aspx
-        """    
+        """
         # format the date in ISO format, e.g. "2012-03-28T19:51:00" for sending via SOAP call. 
         iso_send_date = self.dt_to_iso_date( send_date)
         return_code = self.client.service.SendCampaignToContact(username=self.api_username, password=self.api_password, 
