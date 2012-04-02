@@ -154,9 +154,13 @@ class PyDotMailer(object):
                      }}                       
             http://www.dotmailer.co.uk/api/contacts/get_contact_by_email.aspx
         """
-        return_code = self.client.service.GetContactByEmail(username=self.api_username, password=self.api_password, 
-                        email=email)
-        dict_result = {'ok':True, 'result': return_code }
+        try:
+            return_code = self.client.service.GetContactByEmail(username=self.api_username, password=self.api_password, 
+                            email=email)
+            dict_result = {'ok':True, 'result': return_code }
+        except Exception as e:
+            logger.exception("Exception in GetContactByEmail")
+            dict_result = {'ok':False}
         return dict_result
 
 
