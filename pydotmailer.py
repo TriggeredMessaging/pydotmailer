@@ -54,6 +54,8 @@ class PyDotMailer(object):
         self.client = SOAPClient(self.api_url)
         self.api_username = api_username
         self.api_password = api_password
+        if (not api_username) or (not api_password):
+            raise Exception('Bad username or password')
  
  
     def add_contacts_to_address_book(self, address_book_id, s_contacts, wait_to_complete_seconds = False):
