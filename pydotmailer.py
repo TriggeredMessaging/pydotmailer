@@ -30,10 +30,7 @@ class PyDotMailer(object):
     # Cache the information on the API location on the server
     api_url = ''
     
-    # Default to a 300 second timeout on server calls. Not used at present. 
-    timeout = 300
-    
-    def __init__(self, api_username='', api_password='', secure=True, timeout=300):
+    def __init__(self, api_username='', api_password='', secure=True):
         '''
         Connect to the dotMailer API for a given list.
         
@@ -41,17 +38,17 @@ class PyDotMailer(object):
         @param string $secure Whether or not this should use a secure connection
         '''
         
-        # Default to a 300 second timeout on server calls. Not used at present. TODO - implement.  
-        self.timeout = timeout
-        
         # Define whether we use SSL
         self.secure = secure or False
         if secure:
             self.api_url = 'https://apiconnector.com/API.asmx?WSDL'
         else:
             self.api_url = 'http://apiconnector.com/API.asmx?WSDL'
-            
+
+        # log connection as time can be significant.
+        logger.debug("Connecting to web service")
         self.client = SOAPClient(self.api_url)
+        logger.debug("Connected to web service")
         self.api_username = api_username
         self.api_password = api_password
         if (not api_username) or (not api_password):
