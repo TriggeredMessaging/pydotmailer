@@ -53,6 +53,8 @@ class PyDotMailer(object):
         self.api_password = api_password
         if (not api_username) or (not api_password):
             raise Exception('Bad username or password')
+
+        self.last_exception = None
  
  
     def add_contacts_to_address_book(self, address_book_id, s_contacts, wait_to_complete_seconds = False):
@@ -66,6 +68,7 @@ class PyDotMailer(object):
         
         http://www.dotmailer.co.uk/api/address_books/add_contacts_to_address_book_with_progress.aspx
         """
+        dict_result = {'ok':True }
         return_code=None
         base64_data  = base64.b64encode(s_contacts)
     
@@ -76,9 +79,8 @@ class PyDotMailer(object):
             dt_wait_until=datetime.utcnow() + timedelta(seconds=wait_to_complete_seconds) # wait for max
             while (not return_code or return_code.get('result')=='NotFinished') and \
                     datetime.utcnow() < dt_wait_until:
-                return_code = self.get_contact_import_progress(progress_id)
+                dict_result = self.get_contact_import_progress(progress_id)
                 time.sleep(0.2)
-            dict_result = return_code 
 
         dict_result.update( {'progress_id': progress_id })
 
@@ -90,13 +92,19 @@ class PyDotMailer(object):
         @return dict  e.g. {'ok': False, 'result': NotFinished}    or    dict: {'ok': True, 'result': Finished}
         http://www.dotmailer.co.uk/api/contacts/get_contact_import_progress.aspx
         """
-        return_code = self.client.service.GetContactImportProgress(username=self.api_username, password=self.api_password, 
+        dict_result = {'ok':True }
+        try:
+            return_code = self.client.service.GetContactImportProgress(username=self.api_username, password=self.api_password,
                                                      progressID = progress_id)
-        if return_code == 'Finished':
-            dict_result = {'ok':True, 'result': return_code }
-        else:
-            dict_result = {'ok':False, 'result': return_code }
-            
+            if return_code == 'Finished':
+                dict_result = {'ok':True, 'result': return_code }
+            else:
+                dict_result = {'ok':False, 'result': return_code }
+        except Exception as e:
+            self.last_exception = e # in case caller cares
+            dict_result = {'ok':False, 'errors':[e.message] }
+
+
         return dict_result
 
     def send_campaign_to_contact(self, campaign_id, contact_id, send_date=datetime.utcnow()):
@@ -104,20 +112,24 @@ class PyDotMailer(object):
         @param int campaign_id
         @param int contact_id
         @param datetime date/time in server time when the campaign should be sent. 
-        @return dict  e.g. {'ok': True} or {'ok': False, 'result': <return code> }
+        @return dict  e.g. {'ok': True} or {'ok': False, 'result': <return code if there is one>, 'errors':['sammple error'] }
         http://www.dotmailer.co.uk/api/campaigns/send_campaign_to_contact.aspx
         """
         # format the date in ISO format, e.g. "2012-03-28T19:51:00" for sending via SOAP call. 
+        dict_result = {'ok':True }
         iso_send_date = self.dt_to_iso_date( send_date)
-        return_code = self.client.service.SendCampaignToContact(username=self.api_username, password=self.api_password, 
-                        campaignId= campaign_id, contactid=contact_id, sendDate=iso_send_date) #todo report inconsistent case to dm
-        if return_code:
-            # return code, which means an error 
-            dict_result = {'ok':False, 'result': return_code }
-        else:
-            # no return, which means no error. 
-            dict_result = {'ok':True }
-            
+        return_code = None
+        try:
+            return_code = self.client.service.SendCampaignToContact(username=self.api_username, password=self.api_password,
+                            campaignId= campaign_id, contactid=contact_id, sendDate=iso_send_date) #note inconsistent case in DM API
+            if return_code:
+                # return code, which means an error
+                dict_result = {'ok':False, 'result': return_code }
+
+        except Exception as e:
+            self.last_exception = e # in case caller cares
+            dict_result = {'ok':False, 'errors':[e.message] }
+
         return dict_result
 
     def get_contact_by_email(self, email):
@@ -153,13 +165,15 @@ class PyDotMailer(object):
                      }}                       
             http://www.dotmailer.co.uk/api/contacts/get_contact_by_email.aspx
         """
+        dict_result = {'ok':True }
         try:
             return_code = self.client.service.GetContactByEmail(username=self.api_username, password=self.api_password, 
                             email=email)
             dict_result = {'ok':True, 'result': return_code }
         except Exception as e:
             logger.exception("Exception in GetContactByEmail")
-            dict_result = {'ok':False}
+            self.last_exception = e # in case caller cares
+            dict_result = {'ok':False, 'errors':[e.message] }
         return dict_result
 
 
