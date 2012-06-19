@@ -56,7 +56,7 @@ class TestPyDotMailer(TMSBaseTestCase):
         contacts_filename = "fixtures/test_contacts.csv"
         s_contacts = open(self.resolve_relative_path(__file__,contacts_filename), 'r').read()
 
-        dict_result = self.dot_mailer.add_contacts_to_address_book(address_book_id=self.address_book_id, s_contacts=s_contacts, wait_to_complete_seconds=20)
+        dict_result = self.dot_mailer.add_contacts_to_address_book(address_book_id=self.address_book_id, s_contacts=s_contacts, wait_to_complete_seconds=60)
 
         if not dict_result.get('ok'):
             logger.error("Failure return: %s" % (dict_result) )
@@ -73,7 +73,7 @@ class TestPyDotMailer(TMSBaseTestCase):
         
         email = Secrets.test_address  
         # first ensure this address is in an address book. 
-        dict_result = self.dot_mailer.add_contacts_to_address_book(address_book_id=self.address_book_id, s_contacts='email\n%s\n' % email, wait_to_complete_seconds=20)
+        dict_result = self.dot_mailer.add_contacts_to_address_book(address_book_id=self.address_book_id, s_contacts='email\n%s\n' % email, wait_to_complete_seconds=60)
         self.assertTrue(dict_result.get('ok'), "creating test address failed")
 
         # now get the ID for this address. 
