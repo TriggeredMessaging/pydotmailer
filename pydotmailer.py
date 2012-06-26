@@ -76,11 +76,15 @@ class PyDotMailer(object):
                                                                                 addressbookID=address_book_id, data=base64_data, dataType='CSV')
         dict_result = {'ok':True}
         if wait_to_complete_seconds:
+            # retry loop...
             dt_wait_until=datetime.utcnow() + timedelta(seconds=wait_to_complete_seconds) # wait for max
+            sleep_time = 0.2 # start with short sleep between retries
             while (not return_code or return_code.get('result')=='NotFinished') and \
                     datetime.utcnow() < dt_wait_until:
                 dict_result = self.get_contact_import_progress(progress_id)
-                time.sleep(0.2)
+                time.sleep(sleep_time)
+                # gradually backoff with longer sleep intervals up to a max of 5 seconds
+                sleep_time = min( sleep_time * 2, 5.0)
 
         dict_result.update( {'progress_id': progress_id })
 
