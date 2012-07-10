@@ -112,8 +112,9 @@ class PyDotMailer(object):
         contact.Email=email_address
 
         for field_name in d_fields:
-            contact.DataFields.Keys[0].append(field_name)
-            contact.DataFields.Values[0].append(d_fields.get(field_name))
+            if field_name != 'email' and d_fields.get(field_name):
+                contact.DataFields.Keys[0].append(field_name)
+                contact.DataFields.Values[0].append(d_fields.get(field_name))
 
         # remove some empty values that will upset suds/dotMailer
         del contact.AudienceType
