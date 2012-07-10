@@ -47,8 +47,8 @@ class TestPyDotMailer(TMSBaseTestCase):
         self.address_book_id = Secrets.address_book_id # comes from dotmailer UI, under Contacts, Edit Address Book. Look for the field with label "id"
         # must be an address book specially created for your test purposes, cannot use the built-in address books like "test"
         pass
-    
-                    
+
+
     def test_add_contacts_to_address_book(self):
         """ Test function to test add_contacts_to_address_book. """
         logger.info("test_api_tokens starting")
@@ -90,6 +90,19 @@ class TestPyDotMailer(TMSBaseTestCase):
         logger.info('All done, exiting. ')
 
     
+    def test_add_contact_to_address_book(self):
+        """ Test function to test add_contact_to_address_book. """
+        logger.info("test_add_contact_to_address_book starting")
+
+        s_contact = "sdf@sdlfsd.com" # todo
+
+        email = Secrets.test_address
+        dict_result = self.dot_mailer.add_contact_to_address_book(address_book_id=self.address_book_id, email_address=email, d_fields= { 'firstname': 'mike', 'lastname': 'austin'})
+
+        if not dict_result.get('ok'):
+            logger.error("Failure return: %s" % (dict_result) )
+        self.assertTrue(dict_result.get('ok'), 'test_add_contact_to_address_book returned failure ')
+
 
 # use a custom TestRunner to create JUnit output files in TriggeredMessagingV1/results
 # in jenkins, Junit pattern is results/*.xml

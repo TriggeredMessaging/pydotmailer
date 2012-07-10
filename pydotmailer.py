@@ -1,6 +1,11 @@
-
-# influenced by https://github.com/JeremyJones/dotmailer-client/blob/master/dotmailer.py
-# dotMailer docs at http://www.dotmailer.co.uk/api/
+# pydotmailer - A lightweight wrapper for the dotMailer API, written in Python.
+# Copyright (c) 2012 Triggered Messaging Ltd, released under the MIT license
+# Home page:
+# https://github.com/TriggeredMessaging/pydotmailer/
+# See README and LICENSE files.
+#
+# dotMailer API docs are at http://www.dotmailer.co.uk/api/
+# This class was influenced by earllier work: https://github.com/JeremyJones/dotmailer-client/blob/master/dotmailer.py
 
 import urllib
 import urllib2
@@ -89,7 +94,41 @@ class PyDotMailer(object):
         dict_result.update( {'progress_id': progress_id })
 
         return dict_result #
- 
+
+
+    def add_contact_to_address_book(self, address_book_id, email_address, d_fields):
+        """
+        add a single contact into an address book. - uses AddContactToAddressBook
+        @param int the id of the address book
+        @param email_address The email address to add
+        @param d_fields - dict containing the data to be added. e.g. { 'firstname': 'mike', 'lastname': 'austin'}. columns must map
+        # to standard fields in DM or will attempt to map to your custom data fields in DM.
+        @return dict e.g. {'contact_id': 123532543, 'ok': True, 'contact': APIContact object }
+        """
+        dict_result = {'ok':False}
+        # Create an APIContact object with the details of the record to load.
+        contact = self.client.factory.create('APIContact')
+        del contact.ID
+        contact.Email=email_address
+
+        for field_name in d_fields:
+            contact.DataFields.Keys[0].append(field_name)
+            contact.DataFields.Values[0].append(d_fields.get(field_name))
+
+        # remove some empty values that will upset suds/dotMailer
+        del contact.AudienceType
+        del contact.OptInType
+        del contact.EmailType
+
+
+        try:
+            created_contact = self.client.service.AddContactToAddressBook(username=self.api_username, password=self.api_password,contact=contact, addressbookId=address_book_id)
+            dict_result = ({'ok':True, 'contact_id':created_contact.ID, 'contact': created_contact})
+        except Exception as e:
+            self.last_exception = e # in case caller cares
+            dict_result = {'ok':False, 'errors':[e.message] }
+        return dict_result
+
     def get_contact_import_progress(self, progress_id):
         """
         @param int the progress_id from add_contacts_to_address_book
