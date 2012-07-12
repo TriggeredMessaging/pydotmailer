@@ -34,7 +34,14 @@ class PyDotMailer(object):
     
     # Cache the information on the API location on the server
     api_url = ''
-    
+
+
+    class ERRORS:
+        """ Defines for error codes which we're deriving from the string the dotMailer returns.
+        """
+        ERROR_CAMPAIGN_NOT_FOUND = 'ERROR_CAMPAIGN_NOT_FOUND'
+        ERROR_GENERIC = 'ERROR_UNKNOWN' # code which couldn't be parsed.
+
     def __init__(self, api_username='', api_password='', secure=True):
         '''
         Connect to the dotMailer API for a given list.
@@ -61,7 +68,25 @@ class PyDotMailer(object):
 
         self.last_exception = None
  
- 
+    def unpack_exception(self,e):
+        """ unpack the exception thrown by suds. This contains a string code in e.fault.faultstring containing text e.g.
+        Server was unable to process request. ---> Campaign not found ERROR_CAMPAIGN_NOT_FOUND
+        Use this to set a suitable value for dict_result
+        @param exception
+        @return dict_result, e.g. {'ok':False, 'errors':[e.message], 'error_code':PyDotMailer.ERRORS.ERROR_CAMPAIGN_NOT_FOUND }
+        """
+        self.last_exception = e # in case caller cares
+        fault_string = e.fault.faultstring
+        error_code = None
+        # todo clearly a more generic way of doing this would be good.
+        if 'ERROR_CAMPAIGN_NOT_FOUND' in fault_string:
+            error_code = PyDotMailer.ERRORS.ERROR_CAMPAIGN_NOT_FOUND
+        else:
+            error_code = PyDotMailer.ERRORS.ERROR_GENERIC
+        dict_result = {'ok':False, 'errors':[e.message], 'error_code': error_code }
+        return dict_result
+
+
     def add_contacts_to_address_book(self, address_book_id, s_contacts, wait_to_complete_seconds = False):
         """
         Add a list of contacts to the address book
@@ -76,22 +101,25 @@ class PyDotMailer(object):
         dict_result = {'ok':True }
         return_code=None
         base64_data  = base64.b64encode(s_contacts)
-    
-        progress_id  = self.client.service.AddContactsToAddressBookWithProgress(username=self.api_username, password=self.api_password, 
-                                                                                addressbookID=address_book_id, data=base64_data, dataType='CSV')
-        dict_result = {'ok':True}
-        if wait_to_complete_seconds:
-            # retry loop...
-            dt_wait_until=datetime.utcnow() + timedelta(seconds=wait_to_complete_seconds) # wait for max
-            sleep_time = 0.2 # start with short sleep between retries
-            while (not return_code or return_code.get('result')=='NotFinished') and \
-                    datetime.utcnow() < dt_wait_until:
-                dict_result = self.get_contact_import_progress(progress_id)
-                time.sleep(sleep_time)
-                # gradually backoff with longer sleep intervals up to a max of 5 seconds
-                sleep_time = min( sleep_time * 2, 5.0)
 
-        dict_result.update( {'progress_id': progress_id })
+        try:
+            progress_id  = self.client.service.AddContactsToAddressBookWithProgress(username=self.api_username, password=self.api_password,
+                                                                                    addressbookID=address_book_id, data=base64_data, dataType='CSV')
+            dict_result = {'ok':True}
+            if wait_to_complete_seconds:
+                # retry loop...
+                dt_wait_until=datetime.utcnow() + timedelta(seconds=wait_to_complete_seconds) # wait for max
+                sleep_time = 0.2 # start with short sleep between retries
+                while (not return_code or return_code.get('result')=='NotFinished') and \
+                        datetime.utcnow() < dt_wait_until:
+                    dict_result = self.get_contact_import_progress(progress_id)
+                    time.sleep(sleep_time)
+                    # gradually backoff with longer sleep intervals up to a max of 5 seconds
+                    sleep_time = min( sleep_time * 2, 5.0)
+
+            dict_result.update( {'progress_id': progress_id })
+        except Exception as e:
+            dict_result = self.unpack_exception(e)
 
         return dict_result #
 
@@ -126,8 +154,7 @@ class PyDotMailer(object):
             created_contact = self.client.service.AddContactToAddressBook(username=self.api_username, password=self.api_password,contact=contact, addressbookId=address_book_id)
             dict_result = ({'ok':True, 'contact_id':created_contact.ID, 'contact': created_contact})
         except Exception as e:
-            self.last_exception = e # in case caller cares
-            dict_result = {'ok':False, 'errors':[e.message] }
+            dict_result = self.unpack_exception(e)
         return dict_result
 
     def get_contact_import_progress(self, progress_id):
@@ -145,8 +172,7 @@ class PyDotMailer(object):
             else:
                 dict_result = {'ok':False, 'result': return_code }
         except Exception as e:
-            self.last_exception = e # in case caller cares
-            dict_result = {'ok':False, 'errors':[e.message] }
+            dict_result = self.unpack_exception(e)
 
 
         return dict_result
@@ -171,10 +197,10 @@ class PyDotMailer(object):
                 dict_result = {'ok':False, 'result': return_code }
 
         except Exception as e:
-            self.last_exception = e # in case caller cares
-            dict_result = {'ok':False, 'errors':[e.message] }
+            dict_result = self.unpack_exception(e)
 
         return dict_result
+
 
     def get_contact_by_email(self, email):
         """
@@ -216,8 +242,7 @@ class PyDotMailer(object):
             dict_result = {'ok':True, 'result': return_code }
         except Exception as e:
             logger.exception("Exception in GetContactByEmail")
-            self.last_exception = e # in case caller cares
-            dict_result = {'ok':False, 'errors':[e.message] }
+            dict_result = self.unpack_exception(e)
         return dict_result
 
 
