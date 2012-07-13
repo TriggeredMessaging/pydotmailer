@@ -40,6 +40,7 @@ class PyDotMailer(object):
         """ Defines for error codes which we're deriving from the string the dotMailer returns.
         """
         ERROR_CAMPAIGN_NOT_FOUND = 'ERROR_CAMPAIGN_NOT_FOUND'
+        ERROR_CAMPAIGN_SENDNOTPERMITTED = 'ERROR_CAMPAIGN_SENDNOTPERMITTED' # dotMailer tends to return this if you've run out of campaign credits or a similar issue.
         ERROR_GENERIC = 'ERROR_UNKNOWN' # code which couldn't be parsed.
 
     def __init__(self, api_username='', api_password='', secure=True):
@@ -81,6 +82,8 @@ class PyDotMailer(object):
         # todo clearly a more generic way of doing this would be good.
         if 'ERROR_CAMPAIGN_NOT_FOUND' in fault_string:
             error_code = PyDotMailer.ERRORS.ERROR_CAMPAIGN_NOT_FOUND
+        elif 'ERROR_CAMPAIGN_SENDNOTPERMITTED' in fault_string:
+            error_code = PyDotMailer.ERRORS.ERROR_CAMPAIGN_SENDNOTPERMITTED
         else:
             error_code = PyDotMailer.ERRORS.ERROR_GENERIC
         dict_result = {'ok':False, 'errors':[e.message], 'error_code': error_code }
