@@ -127,13 +127,14 @@ class PyDotMailer(object):
         return dict_result #
 
 
-    def add_contact_to_address_book(self, address_book_id, email_address, d_fields):
+    def add_contact_to_address_book(self, address_book_id, email_address, d_fields, email_type="Html"):
         """
         add a single contact into an address book. - uses AddContactToAddressBook
         @param int the id of the address book
         @param email_address The email address to add
         @param d_fields - dict containing the data to be added. e.g. { 'firstname': 'mike', 'lastname': 'austin'}. columns must map
         # to standard fields in DM or will attempt to map to your custom data fields in DM.
+        @param email_type = "Html" - the new contact will be set to receive this format by default. 
         @return dict e.g. {'contact_id': 123532543, 'ok': True, 'contact': APIContact object }
         """
         dict_result = {'ok':False}
@@ -150,7 +151,7 @@ class PyDotMailer(object):
         # remove some empty values that will upset suds/dotMailer
         del contact.AudienceType
         del contact.OptInType
-        del contact.EmailType
+        contact.EmailType = email_type
 
 
         try:
