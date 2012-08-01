@@ -42,6 +42,7 @@ class PyDotMailer(object):
         ERROR_CAMPAIGN_NOT_FOUND = 'ERROR_CAMPAIGN_NOT_FOUND'
         ERROR_CAMPAIGN_SENDNOTPERMITTED = 'ERROR_CAMPAIGN_SENDNOTPERMITTED' # dotMailer tends to return this if you've run out of campaign credits or a similar issue.
         ERROR_GENERIC = 'ERROR_UNKNOWN' # code which couldn't be parsed.
+        ERROR_CONTACT_NOT_FOUND = 'ERROR_CONTACT_NOT_FOUND'
 
     def __init__(self, api_username='', api_password='', secure=True):
         '''
@@ -84,6 +85,8 @@ class PyDotMailer(object):
             error_code = PyDotMailer.ERRORS.ERROR_CAMPAIGN_NOT_FOUND
         elif 'ERROR_CAMPAIGN_SENDNOTPERMITTED' in fault_string:
             error_code = PyDotMailer.ERRORS.ERROR_CAMPAIGN_SENDNOTPERMITTED
+        elif 'ERROR_CONTACT_NOT_FOUND' in fault_string:
+            error_code = PyDotMailer.ERRORS.ERROR_CONTACT_NOT_FOUND
         else:
             error_code = PyDotMailer.ERRORS.ERROR_GENERIC
         dict_result = {'ok':False, 'errors':[e.message], 'error_code': error_code }
@@ -248,8 +251,12 @@ class PyDotMailer(object):
                             email=email)
             dict_result = {'ok':True, 'result': return_code }
         except Exception as e:
-            logger.exception("Exception in GetContactByEmail")
             dict_result = self.unpack_exception(e)
+            if dict_result.get('error_code') == PyDotMailer.ERRORS.ERROR_CONTACT_NOT_FOUND:
+                pass # ignore these expected errors
+            else:
+                # record the unexpected exception
+                logger.exception("Exception in GetContactByEmail")
         return dict_result
 
 
