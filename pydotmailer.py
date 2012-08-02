@@ -55,17 +55,15 @@ class DotMailerSudsPlugin(MessagePlugin):
                     # we start with: <apic:anyType >Jim</apic:anyType>
                     # we need: <apic:anyType xsi:type="xsd:string">Jim</apic:anyType>
 
-                    # The following nest of objects should all exist. Worst-case, any exception will be caught.
                     contact = add_contact_to_address_book.getChild('contact')
-                    data_fields = contact.getChild('DataFields')
-                    values = data_fields.getChild('Values')
-                    for value in values:
-                        value.set('xsi:type','xsd:string')
+                    if contact:
+                        data_fields = contact.getChild('DataFields')
+                        if data_fields:
+                            values = data_fields.getChild('Values')
+                            for value in values:
+                                value.set('xsi:type','xsd:string')
 
 
-            #foo = body[0]
-            #foo.set('id', '12345')
-            #foo.set('version', '2.0')
         except:
             logger.exception("Exception in DotMailerSudsPlugin::marshalled")
 
@@ -119,7 +117,9 @@ class PyDotMailer(object):
         @return dict_result, e.g. {'ok':False, 'errors':[e.message], 'error_code':PyDotMailer.ERRORS.ERROR_CAMPAIGN_NOT_FOUND }
         """
         self.last_exception = e # in case caller cares
-        fault_string = e.fault.faultstring
+        fault_string = None
+        if e and e.fault and e.fault.faultstring:
+            fault_string = e.fault.faultstring
         error_code = None
         # todo clearly a more generic way of doing this would be good.
         if 'ERROR_CAMPAIGN_NOT_FOUND' in fault_string:
@@ -299,13 +299,15 @@ class PyDotMailer(object):
 
             if dict_result.get('ok'):
                 # create a dictionary with structure { field_name: field_value }
-                d_fields = {}
-                data_fields = dict_result.get('result').DataFields
-                for idx, field_name in enumerate(data_fields.Keys[0]):
-                    print idx,field_name, data_fields.Values[0][idx]
-                    d_fields.update({field_name: data_fields.Values[0][idx] })
-                dict_result.update({'d_fields': d_fields })
-
+                try:
+                    d_fields = {}
+                    data_fields = dict_result.get('result').DataFields
+                    for idx, field_name in enumerate(data_fields.Keys[0]):
+                        print idx,field_name, data_fields.Values[0][idx]
+                        d_fields.update({field_name: data_fields.Values[0][idx] })
+                    dict_result.update({'d_fields': d_fields })
+                except:
+                    logger.exception("Exception unpacking fields")
 
 
         except Exception as e:
