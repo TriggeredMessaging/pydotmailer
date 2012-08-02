@@ -3,6 +3,7 @@ Main executable:
 ${workspace_loc:TriggeredMessagingV1/python/lib/tests/test_api_token_handling.py}
 
 """
+import random
 
 import xmlrunner # http://www.stevetrefethen.com/blog/Publishing-Python-unit-test-results-in-Jenkins.aspx
 import unittest
@@ -71,9 +72,12 @@ class TestPyDotMailer(TMSBaseTestCase):
         """
         logger.info("test_add_and_send_single starting")
         
-        email = Secrets.test_address  
+        email = Secrets.test_address
+        merge_vars = {'Postcode':'arfle'}
         # first ensure this address is in an address book. 
-        dict_result = self.dot_mailer.add_contacts_to_address_book(address_book_id=self.address_book_id, s_contacts='email\n%s\n' % email, wait_to_complete_seconds=60)
+        ## dict_result = self.dot_mailer.add_contacts_to_address_book(address_book_id=self.address_book_id, s_contacts='email\n%s\n' % email, wait_to_complete_seconds=60)
+        dict_result = self.dot_mailer.add_contact_to_address_book(address_book_id=self.address_book_id, email_address=email, d_fields=merge_vars)
+
         self.assertTrue(dict_result.get('ok'), "creating test address failed")
 
         # now get the ID for this address. 
@@ -97,11 +101,19 @@ class TestPyDotMailer(TMSBaseTestCase):
         s_contact = "sdf@sdlfsd.com" # todo
 
         email = Secrets.test_address
-        dict_result = self.dot_mailer.add_contact_to_address_book(address_book_id=self.address_book_id, email_address=email, d_fields= { 'firstname': 'mike', 'lastname': 'austin'})
+        test_postcode = "%s" % random.randint(0,100000)
+        dict_result = self.dot_mailer.add_contact_to_address_book(address_book_id=self.address_book_id, email_address=email, d_fields= { 'firstname': 'mike', 'lastname': 'austin', 'postcode': test_postcode})
 
         if not dict_result.get('ok'):
             logger.error("Failure return: %s" % (dict_result) )
         self.assertTrue(dict_result.get('ok'), 'test_add_contact_to_address_book returned failure ')
+
+        # Now retrieve the record from dotMailer and check that the data has been set correctly.
+        dict_result = self.dot_mailer.get_contact_by_email(email)
+        self.assertTrue(dict_result.get('ok'), 'get_contact_by_email returned failure ')
+        self.assertEqual(dict_result.get('d_fields').get('POSTCODE'), test_postcode)
+        pass #
+
 
 
 # use a custom TestRunner to create JUnit output files in TriggeredMessagingV1/results

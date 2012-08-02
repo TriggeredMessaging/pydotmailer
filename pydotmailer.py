@@ -256,7 +256,10 @@ class PyDotMailer(object):
     def get_contact_by_email(self, email):
         """
         @param string email address to search for.
-        @return dict  e.g. {'ok': True, 'result': (APIContact){
+        @return dict  e.g. {'ok': True,
+                        d_fields: { field_name: field_value }, # dictionary with multiple fields, keyed by field name
+                        # The result member is the raw return from dotMailer.
+                        'result': (APIContact){
                        ID = 367568124
                        Email = "test@blackhole.triggeredmessaging.com" 
                        AudienceType = "Unknown"
@@ -291,6 +294,20 @@ class PyDotMailer(object):
             return_code = self.client.service.GetContactByEmail(username=self.api_username, password=self.api_password, 
                             email=email)
             dict_result = {'ok':True, 'result': return_code }
+
+
+
+            if dict_result.get('ok'):
+                # create a dictionary with structure { field_name: field_value }
+                d_fields = {}
+                data_fields = dict_result.get('result').DataFields
+                for idx, field_name in enumerate(data_fields.Keys[0]):
+                    print idx,field_name, data_fields.Values[0][idx]
+                    d_fields.update({field_name: data_fields.Values[0][idx] })
+                dict_result.update({'d_fields': d_fields })
+
+
+
         except Exception as e:
             dict_result = self.unpack_exception(e)
             if dict_result.get('error_code') == PyDotMailer.ERRORS.ERROR_CONTACT_NOT_FOUND:
@@ -298,6 +315,8 @@ class PyDotMailer(object):
             else:
 
                 logger.exception("Exception in GetContactByEmail")
+
+
         return dict_result
 
 
