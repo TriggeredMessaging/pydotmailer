@@ -199,7 +199,7 @@ class PyDotMailer(object):
         contact.OptInType = opt_in_type
         contact.EmailType = email_type
 
-        logging.getLogger('suds.client').setLevel(logging.DEBUG) # fixme
+        # logging.getLogger('suds.client').setLevel(logging.DEBUG)
 
         try:
             created_contact = self.client.service.AddContactToAddressBook(username=self.api_username, password=self.api_password,contact=contact, addressbookId=address_book_id)
