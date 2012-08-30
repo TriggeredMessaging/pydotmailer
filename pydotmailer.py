@@ -228,7 +228,7 @@ class PyDotMailer(object):
 
         return dict_result
 
-    def send_campaign_to_contact(self, campaign_id, contact_id, send_date=datetime.utcnow()):
+    def send_campaign_to_contact(self, campaign_id, contact_id, send_date=None):
         """
         @param int campaign_id
         @param int contact_id
@@ -236,7 +236,9 @@ class PyDotMailer(object):
         @return dict  e.g. {'ok': True} or {'ok': False, 'result': <return code if there is one>, 'errors':['sammple error'] }
         http://www.dotmailer.co.uk/api/campaigns/send_campaign_to_contact.aspx
         """
-        # format the date in ISO format, e.g. "2012-03-28T19:51:00" for sending via SOAP call. 
+        # format the date in ISO format, e.g. "2012-03-28T19:51:00" for sending via SOAP call.
+        if not send_date:
+            send_date=datetime.utcnow()
         dict_result = {'ok':True }
         iso_send_date = self.dt_to_iso_date( send_date)
         return_code = None
