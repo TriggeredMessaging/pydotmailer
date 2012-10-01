@@ -292,6 +292,7 @@ class PyDotMailer(object):
             http://www.dotmailer.co.uk/api/contacts/get_contact_by_email.aspx
         """
         dict_result = {'ok':True }
+        data_fields = None
         try:
             return_code = self.client.service.GetContactByEmail(username=self.api_username, password=self.api_password, 
                             email=email)
@@ -309,7 +310,9 @@ class PyDotMailer(object):
                         d_fields.update({field_name: data_fields.Values[0][idx] })
                     dict_result.update({'d_fields': d_fields })
                 except:
-                    logger.exception("Exception unpacking fields")
+                    logger.exception("Exception unpacking fields in GetContactByEmail for email=%s" % email)
+                    # log additional info separately in case something bad has happened which'll cause this logging line to raise.
+                    logger.error("Further info: data_fields=%s" % data_fields)
 
 
         except Exception as e:
