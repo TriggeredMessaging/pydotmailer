@@ -28,44 +28,8 @@ except ImportError:
 import logging
 logger = logging.getLogger(__name__)
 
-
 from suds.plugin import *
-class DotMailerSudsPlugin(MessagePlugin):
-    """ case 649
-    plugin for SUDS which can inspect and manipulate the xml packets sent to/from the soap server.
-    docs here https://fedorahosted.org/suds/wiki/Documentation#MessagePlugin
-    """
-    def marshalled(self, context):
-        """ member function which is called by SUDS when it starts to render/marshall the
-        xml to send to the server. At this stage, we have an in-memory set of objects 
-        starting with the SOAP context. Any chances we make to the nest of objects
-        will then be rendered to XML by our caller. 
-        """
-
-
-        try:
-            context.envelope.set('xmlns:apic','http://apiconnector.com')
-            context.envelope.set('xmlns:xsd','http://www.w3.org/2001/XMLSchema')
-
-            body = context.envelope.getChild('Body')
-            if body:
-                add_contact_to_address_book = body.getChild('AddContactToAddressBook')
-                if add_contact_to_address_book:
-                    # We need to manipulate the "Values" sub-sub-node to set xsi:type="xsd:string" on each element. i.e.
-                    # we start with: <apic:anyType >Jim</apic:anyType>
-                    # we need: <apic:anyType xsi:type="xsd:string">Jim</apic:anyType>
-
-                    contact = add_contact_to_address_book.getChild('contact')
-                    if contact:
-                        data_fields = contact.getChild('DataFields')
-                        if data_fields:
-                            values = data_fields.getChild('Values')
-                            for value in values:
-                                value.set('xsi:type','xsd:string')
-
-
-        except:
-            logger.exception("Exception in DotMailerSudsPlugin::marshalled")
+from dotmailersudsplugin import DotMailerSudsPlugin
 
 
 class PyDotMailer(object):
@@ -85,23 +49,29 @@ class PyDotMailer(object):
 
     def __init__(self, api_username='', api_password='', secure=True):
         '''
-        Connect to the dotMailer API for a given list.
-        
-        @param string $apikey Your dotMailer apikey
-        @param string $secure Whether or not this should use a secure connection
+        Connect to the dotMailer API at apiconnector.com, using SUDS.
+
+        param string $ap_key Not present, because the dotMailer API doesn't support an API key
+        @param string $api_username Your dotMailer user name
+        @param string $api_password Your dotMailer password
+        @param string $secure Whether or not this should use a secure connection (HTTPS). Always True if the ESP doesn't support an insecure API.
         '''
         
-        # Define whether we use SSL
-        self.secure = secure or False
+        # Remember the HTTPS flag
+        self.secure = secure or False # Cast to a boolean (?)
+
+        # Choose the dotMailer API URL
         if secure:
             self.api_url = 'https://apiconnector.com/API.asmx?WSDL'
         else:
             self.api_url = 'http://apiconnector.com/API.asmx?WSDL'
 
-        # log connection as time can be significant.
+        # Connect to the API, using SUDS. Log before and after to track the time taken.
         logger.debug("Connecting to web service")
-        self.client = SOAPClient(self.api_url, plugins=[DotMailerSudsPlugin()])
+        self.client = SOAPClient(self.api_url, plugins=[DotMailerSudsPlugin()]) # Plugin makes a tiny XML patch for dotMailer
         logger.debug("Connected to web service")
+
+        # Remember the username and password. There's no API key to remember with dotMailer
         self.api_username = api_username
         self.api_password = api_password
         if (not api_username) or (not api_password):
@@ -181,28 +151,47 @@ class PyDotMailer(object):
         @param email_type = "Html" - the new contact will be set to receive this format by default.
         @return dict e.g. {'contact_id': 123532543, 'ok': True, 'contact': APIContact object }
         """
+        # Initialise the result dictionary
         dict_result = {'ok':False}
-        # Create an APIContact object with the details of the record to load.
+        # Create an APIContact object with the details of the record to load. For example:
+        # APIContact: (APIContact){
+        #   ID = None, Email = None,
+        #   AudienceType = (ContactAudienceTypes){ value = None, }
+        #   DataFields = (ContactDataFields){ Keys = (ArrayOfString){ string[] = <empty> }
+        #   Values = (ArrayOfAnyType){ anyType[] = <empty> }
+        #   OptInType = (ContactOptInTypes){ value = None }
+        #   EmailType = (ContactEmailTypes){ value = None }
+        #   Notes = None }
         contact = self.client.factory.create('APIContact')
         del contact.ID
         contact.Email=email_address
 
+        # Copy field data into the call
         for field_name in d_fields:
             if field_name != 'email' and d_fields.get(field_name):
                 contact.DataFields.Keys[0].append(field_name)
                 contact.DataFields.Values[0].append(d_fields.get(field_name))
 
         # remove some empty values that will upset suds/dotMailer
-        #del contact.AudienceType
-        #del contact.OptInType
+        ####del contact.AudienceType
+        ####del contact.OptInType
+
         contact.AudienceType = audience_type
         contact.OptInType = opt_in_type
         contact.EmailType = email_type
 
-        # logging.getLogger('suds.client').setLevel(logging.DEBUG)
+        #### logging.getLogger('suds.client').setLevel(logging.DEBUG)
 
         try:
             created_contact = self.client.service.AddContactToAddressBook(username=self.api_username, password=self.api_password,contact=contact, addressbookId=address_book_id)
+            # Example dict_result contents:
+            # { 'contact': (APIContact){ ID = 417373614, Email = "test.mailings+unit_tests@triggeredmessaging.com",
+            #   AudienceType = "Unknown",
+            #   DataFields = (ContactDataFields){
+            #     Keys = (ArrayOfString){ string[] = "Postcode", }
+            #     Values = (ArrayOfAnyType){ anyType[] = "SW1A 0AA", } }
+            #     OptInType = "Unknown", EmailType = "Html" },
+            #   'ok': True, 'contact_id': 417373614}
             dict_result = ({'ok':True, 'contact_id':created_contact.ID, 'contact': created_contact})
         except Exception as e:
             dict_result = self.unpack_exception(e)
