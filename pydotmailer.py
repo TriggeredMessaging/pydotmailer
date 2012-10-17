@@ -305,6 +305,8 @@ class PyDotMailer(object):
                 try:
                     d_fields = {}
                     data_fields = dict_result.get('result').DataFields
+                    # mja 17oct12 note that if either first/last name are empty, we seem to get inconsistent numbers of keys+values returned
+                    # by dotMailer. Correspondence with their support is in case 1084
                     for idx, field_name in enumerate(data_fields.Keys[0]):
                         print idx,field_name, data_fields.Values[0][idx]
                         d_fields.update({field_name: data_fields.Values[0][idx] })
