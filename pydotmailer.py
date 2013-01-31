@@ -294,9 +294,35 @@ class PyDotMailer(object):
                 try:
                     d_fields = {}
                     data_fields = dict_result.get('result').DataFields
-                    for idx, field_name in enumerate(data_fields.Keys[0]):
-                        print idx,field_name, data_fields.Values[0][idx]
-                        d_fields.update({field_name: data_fields.Values[0][idx] })
+                    data_fields_keys = data_fields.Keys[0]
+                    data_fields_values = data_fields.Values[0]
+                    # Case 1886: If there's an empty first name/last name key, then dotMailer fails to return a value, so the lengths don't match
+                    # If this happens, scan through the keys and add an extra value of None just before the dodgy key(s)
+                    len_data_fields_names = len(data_fields_keys)
+                    len_data_fields_values = len(data_fields_values)
+                    if len_data_fields_names > len_data_fields_values:
+                        # Different number of keys and values, so do a copy but insert None when necessary
+                        name_index = 0
+                        value_index = 0
+                        while name_index < len_data_fields_names:
+                            field_name = data_fields_keys[name_index]
+                            if name_index+1 < len_data_fields_names:
+                                next_field_name = data_fields_keys[name_index+1]
+                            else:
+                                next_field_name = ""
+                            if ((len_data_fields_names > len_data_fields_values)
+                                and (next_field_name=="FIRSTNAME" or next_field_name=="LASTNAME" or next_field_name=="FULLNAME")):
+                                d_fields.update({field_name: None }) # Insert new value Null
+                                len_data_fields_values += 1 # Count one more value, but don't step on to next value
+                            else:
+                                d_fields.update({field_name: data_fields_values[value_index] }) # Copy the real value
+                                value_index += 1 # Step on to next value
+                            name_index += 1 # Next key
+                    else:
+                        # Same number of keys and values, so just do a straightforward copy
+                        for idx, field_name in enumerate(data_fields_keys):
+                            print idx,field_name, data_fields_values[idx]
+                            d_fields.update({field_name: data_fields_values[idx] })
                     dict_result.update({'d_fields': d_fields })
                 except:
                     logger.exception("Exception unpacking fields in GetContactByEmail for email=%s" % email)
