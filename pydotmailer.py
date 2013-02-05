@@ -88,7 +88,8 @@ class PyDotMailer(object):
         """
         self.last_exception = e # in case caller cares
         fault_string = None
-        if e and e.fault and e.fault.faultstring:
+        # http://stackoverflow.com/questions/610883/how-to-know-if-an-object-has-an-attribute-in-python
+        if e and hasattr(e, 'fault') and hasattr(e.fault, 'faultstring'):
             fault_string = e.fault.faultstring
         error_code = None
         # todo clearly a more generic way of doing this would be good.
