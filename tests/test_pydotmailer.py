@@ -114,6 +114,25 @@ class TestPyDotMailer(TMSBaseTestCase):
         self.assertEqual(dict_result.get('d_fields').get('POSTCODE'), test_postcode)
         pass #
 
+    def test_get_contact_functions(self):
+        # first create a test contact
+        s_contact = "sdf@sdlfsd.com" # todo
+        email = Secrets.test_address
+        test_postcode = "%s" % random.randint(0,100000)
+        dict_result = self.dot_mailer.add_contact_to_address_book(address_book_id=self.address_book_id, email_address=email, d_fields= { 'firstname': 'mike', 'lastname': 'austin', 'postcode': test_postcode})
+
+        # Now try retrieving it by email address
+        dict_result = self.dot_mailer.get_contact_by_email(email)
+        self.assertTrue(dict_result.get('ok'))
+        contact_id = dict_result.get('contact_id')
+        self.assertIsNotNone(contact_id)
+        self.assertEqual(dict_result.get('email'), email)
+
+        # Now retrieving it by contact_id
+        dict_result = self.dot_mailer.get_contact_by_id(contact_id)
+        self.assertTrue(dict_result.get('ok'))
+        self.assertEqual(dict_result.get('email'), email)
+
 
 
 # use a custom TestRunner to create JUnit output files in TriggeredMessagingV1/results

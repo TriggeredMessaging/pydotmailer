@@ -87,7 +87,7 @@ class PyDotMailer(object):
         @return dict_result, e.g. {'ok':False, 'errors':[e.message], 'error_code':PyDotMailer.ERRORS.ERROR_CAMPAIGN_NOT_FOUND }
         """
         self.last_exception = e # in case caller cares
-        fault_string = None
+        fault_string = ''
         # http://stackoverflow.com/questions/610883/how-to-know-if-an-object-has-an-attribute-in-python
         if e and hasattr(e, 'fault') and hasattr(e.fault, 'faultstring'):
             fault_string = e.fault.faultstring
@@ -249,6 +249,8 @@ class PyDotMailer(object):
         """
         @param string email address to search for.
         @return dict  e.g. {'ok': True,
+                        contact_id: 32323232, # the dotMailer contact ID
+                        email: # the email address of the returned record
                         d_fields: { field_name: field_value }, # dictionary with multiple fields, keyed by field name
                         # The result member is the raw return from dotMailer.
                         'result': (APIContact){
@@ -330,6 +332,10 @@ class PyDotMailer(object):
                     # log additional info separately in case something bad has happened which'll cause this logging line to raise.
                     logger.error("Further info: data_fields=%s" % data_fields)
 
+            contact_id = return_code.ID
+            dict_result.update({'contact_id': contact_id})
+            returned_email_address = return_code.Email
+            dict_result.update({'email': returned_email_address})
 
         except Exception as e:
             dict_result = self.unpack_exception(e)
@@ -341,6 +347,10 @@ class PyDotMailer(object):
 
 
         return dict_result
+
+
+
+
 
 
     def dt_to_iso_date(self, dt):
@@ -357,6 +367,109 @@ class PyDotMailer(object):
 
     
 
+    def get_contact_by_id(self, contact_id):
+        """
+        @param string id to search for
+        @return dict  e.g. {'ok': True,
+                        contact_id: 32323232, # the dotMailer contact ID
+                        email: # the email address of the returned record
+                        d_fields: { field_name: field_value }, # dictionary with multiple fields, keyed by field name
+                        # The result member is the raw return from dotMailer.
+                        'result': (APIContact){
+                       ID = 367568124
+                       Email = "test@blackhole.triggeredmessaging.com"
+                       AudienceType = "Unknown"
+                       DataFields =
+                          (ContactDataFields){
+                             Keys =
+                                (ArrayOfString){
+                                   string[] =
+                                      "FIRSTNAME",
+                                      "FULLNAME",
+                                      "GENDER",
+                                      "LASTNAME",
+                                      "POSTCODE",
+                                }
+                             Values =
+                                (ArrayOfAnyType){
+                                   anyType[] =
+                                      None,
+                                      None,
+                                      None,
+                                      None,
+                                }
+                          }
+                       OptInType = "Unknown"
+                       EmailType = "Html"
+                       Notes = None
+                     }}
+            http://www.dotmailer.co.uk/api/contacts/get_contact_by_id.aspx
+        """
+        dict_result = {'ok':True }
+        data_fields = None
+        try:
+            return_code = self.client.service.GetContactById(username=self.api_username, password=self.api_password,
+                            id=contact_id)
+            dict_result = {'ok':True, 'result': return_code }
+
+
+
+            if dict_result.get('ok'):
+                # create a dictionary with structure { field_name: field_value }
+                try:
+                    d_fields = {}
+                    data_fields = dict_result.get('result').DataFields
+                    data_fields_keys = data_fields.Keys[0]
+                    data_fields_values = data_fields.Values[0]
+                    # Case 1886: If there's an empty first name/last name key, then dotMailer fails to return a value, so the lengths don't match
+                    # If this happens, scan through the keys and add an extra value of None just before the dodgy key(s)
+                    # len_data_fields_names = len(data_fields_keys)
+                    # len_data_fields_values = len(data_fields_values)
+                    # if len_data_fields_names > len_data_fields_values:
+                    #     # Different number of keys and values, so do a copy but insert None when necessary
+                    #     name_index = 0
+                    #     value_index = 0
+                    #     while name_index < len_data_fields_names:
+                    #         field_name = data_fields_keys[name_index]
+                    #         if name_index+1 < len_data_fields_names:
+                    #             next_field_name = data_fields_keys[name_index+1]
+                    #         else:
+                    #             next_field_name = ""
+                    #         if ((len_data_fields_names > len_data_fields_values)
+                    #             and (next_field_name=="FIRSTNAME" or next_field_name=="LASTNAME" or next_field_name=="FULLNAME")):
+                    #             d_fields.update({field_name: None }) # Insert new value Null
+                    #             len_data_fields_values += 1 # Count one more value, but don't step on to next value
+                    #         else:
+                    #             d_fields.update({field_name: data_fields_values[value_index] }) # Copy the real value
+                    #             value_index += 1 # Step on to next value
+                    #         name_index += 1 # Next key
+                    # else:
+                    # Same number of keys and values, so just do a straightforward copy
+                    for idx, field_name in enumerate(data_fields_keys):
+                        print idx,field_name, data_fields_values[idx]
+                        d_fields.update({field_name: data_fields_values[idx] })
+
+                    dict_result.update({'d_fields': d_fields })
+                except:
+                    logger.exception("Exception unpacking fields in GetContactByEmail for id=%s" % contact_id)
+                    # log additional info separately in case something bad has happened which'll cause this logging line to raise.
+                    logger.error("Further info: data_fields=%s" % data_fields)
+
+            contact_id = return_code.ID
+            dict_result.update({'contact_id': contact_id})
+            returned_email_address = return_code.Email
+            dict_result.update({'email': returned_email_address})
+
+        except Exception as e:
+            dict_result = self.unpack_exception(e)
+            if dict_result.get('error_code') == PyDotMailer.ERRORS.ERROR_CONTACT_NOT_FOUND:
+                pass # ignore these expected errors
+            else:
+
+                logger.exception("Exception in GetContactByEmail")
+
+
+        return dict_result
 
 
 """
