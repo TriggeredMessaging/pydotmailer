@@ -130,6 +130,7 @@ class TestPyDotMailer(TMSBaseTestCase):
 
         # Now retrieving it by contact_id
         dict_result = self.dot_mailer.get_contact_by_id(contact_id)
+        self.assertIsNotNone(dict_result.get('d_fields')) # case 3903 ensure it's unpacked the fields ok.
         self.assertTrue(dict_result.get('ok'))
         self.assertEqual(dict_result.get('email'), email)
 
