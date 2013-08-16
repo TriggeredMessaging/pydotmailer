@@ -34,18 +34,20 @@ from dotmailersudsplugin import DotMailerSudsPlugin
 
 class PyDotMailer(object):
     version = '0.1'
-    
+
+    class RESULT_FIELDS_ERROR_CODE:
+        """ Defines for RESULT_FIELDS.ERROR_CODE error codes which we're deriving from the string the ESP, e.g dotMailer returns.
+        """
+        ERROR_CAMPAIGN_NOT_FOUND = 'ERROR_CAMPAIGN_NOT_FOUND' # no email template
+        ERROR_CAMPAIGN_SENDNOTPERMITTED = 'ERROR_CAMPAIGN_SENDNOTPERMITTED'  # not paid enough? dotMailer tends to return this if you've run out of campaign credits or a similar issue.
+        ERROR_GENERIC = 'ERROR_UNKNOWN' # code which couldn't be parsed.
+        ERROR_CONTACT_NOT_FOUND = 'ERROR_CONTACT_NOT_FOUND' # no email address?
+        ERROR_CONTACT_UNSUBSCRIBED = 'ERROR_CONTACT_UNSUBSCRIBED' # no send permission
+        ERROR_CONTACT_BLACKHOLED = 'ERROR_CONTACT_BLACKHOLED' # address blackholed
+        ERROR_OTHER = 'ERROR_OTHER' # Etc
+
     # Cache the information on the API location on the server
     api_url = ''
-
-
-    class ERRORS:
-        """ Defines for error codes which we're deriving from the string the dotMailer returns.
-        """
-        ERROR_CAMPAIGN_NOT_FOUND = 'ERROR_CAMPAIGN_NOT_FOUND'
-        ERROR_CAMPAIGN_SENDNOTPERMITTED = 'ERROR_CAMPAIGN_SENDNOTPERMITTED' # dotMailer tends to return this if you've run out of campaign credits or a similar issue.
-        ERROR_GENERIC = 'ERROR_UNKNOWN' # code which couldn't be parsed.
-        ERROR_CONTACT_NOT_FOUND = 'ERROR_CONTACT_NOT_FOUND'
 
     def __init__(self, api_username='', api_password='', secure=True):
         '''
@@ -94,13 +96,15 @@ class PyDotMailer(object):
         error_code = None
         # todo clearly a more generic way of doing this would be good.
         if 'ERROR_CAMPAIGN_NOT_FOUND' in fault_string:
-            error_code = PyDotMailer.ERRORS.ERROR_CAMPAIGN_NOT_FOUND
+            error_code = PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CAMPAIGN_NOT_FOUND
         elif 'ERROR_CAMPAIGN_SENDNOTPERMITTED' in fault_string:
-            error_code = PyDotMailer.ERRORS.ERROR_CAMPAIGN_SENDNOTPERMITTED
+            error_code = PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CAMPAIGN_SENDNOTPERMITTED
         elif 'ERROR_CONTACT_NOT_FOUND' in fault_string:
-            error_code = PyDotMailer.ERRORS.ERROR_CONTACT_NOT_FOUND
+            error_code = PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CONTACT_NOT_FOUND
+        elif 'ERROR_CONTACT_SUPPRESSED' in fault_string: # Server was unable to process request. ---> Contact is suppressed. ERROR_CONTACT_SUPPRESSED
+            error_code = PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CONTACT_UNSUBSCRIBED
         else:
-            error_code = PyDotMailer.ERRORS.ERROR_GENERIC
+            error_code = PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_OTHER
         dict_result = {'ok':False, 'errors':[e.message], 'error_code': error_code }
         return dict_result
 
