@@ -438,14 +438,12 @@ class PyDotMailer(object):
                      }}
             http://www.dotmailer.co.uk/api/contacts/get_contact_by_id.aspx
         """
-        dict_result = {'ok':True }
+        dict_result = {'ok': True}
         data_fields = None
         try:
             return_code = self.client.service.GetContactById(username=self.api_username, password=self.api_password,
-                            id=contact_id)
-            dict_result = {'ok':True, 'result': return_code }
-
-
+                                                             id=contact_id)
+            dict_result = {'ok': True, 'result': return_code}
 
             if dict_result.get('ok'):
                 # create a dictionary with structure { field_name: field_value }
@@ -457,7 +455,7 @@ class PyDotMailer(object):
 
                     dict_result.update({'d_fields': d_fields })
                 except:
-                    logger.exception("Exception unpacking fields in GetContactByEmail for id=%s" % contact_id)
+                    logger.exception("Exception unpacking fields in GetContactById for id=%s" % contact_id)
                     # log additional info separately in case something bad has happened which'll cause this logging line to raise.
                     logger.error("Further info: data_fields=%s" % data_fields)
 
@@ -468,12 +466,10 @@ class PyDotMailer(object):
 
         except Exception as e:
             dict_result = self.unpack_exception(e)
-            if dict_result.get('error_code') == PyDotMailer.ERRORS.ERROR_CONTACT_NOT_FOUND:
-                pass # ignore these expected errors
+            if dict_result.get('error_code') == PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CONTACT_NOT_FOUND:
+                pass  # Don't log these expected errors
             else:
-
-                logger.exception("Exception in GetContactByEmail")
-
+                logger.exception("Exception in GetContactById")
 
         return dict_result
 
