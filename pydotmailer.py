@@ -70,6 +70,8 @@ class PyDotMailer(object):
         self.client = SOAPClient(self.api_url,
                                  plugins=[DotMailerSudsPlugin()])  # Plugin makes a tiny XML patch for dotMailer
         logger.debug("Connected to web service")
+        # Change the logging level to CRITICAL to avoid logging errors for every API call which fails via suds
+        logging.getLogger('suds.client').setLevel(logging.CRITICAL)
 
         # Remember the username and password. There's no API key to remember with dotMailer
         self.api_username = api_username
