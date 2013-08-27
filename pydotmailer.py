@@ -315,7 +315,7 @@ class PyDotMailer(object):
 
         except Exception as e:
             dict_result = self.unpack_exception(e)
-            if dict_result.get('error_code') == PyDotMailer.ERRORS.ERROR_CONTACT_NOT_FOUND:
+            if dict_result.get('error_code') == PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CONTACT_NOT_FOUND:
                 pass # ignore these expected errors
             else:
 
