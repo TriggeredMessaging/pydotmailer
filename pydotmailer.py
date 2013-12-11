@@ -481,8 +481,6 @@ class PyDotMailer(object):
             dict_result = self.unpack_exception(e)
             if dict_result.get('error_code') == PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CONTACT_NOT_FOUND:
                 pass  # Don't log these expected errors
-            else:
-                logger.exception("Exception in GetContactById")
 
         return dict_result
 
