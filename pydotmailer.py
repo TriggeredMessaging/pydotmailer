@@ -18,7 +18,7 @@ try:
     import simplejson as json
 except ImportError:
     import json  # fall back to traditional json module.
-    
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,9 @@ class PyDotMailer(object):
         ERROR_CONTACT_UNSUBSCRIBED = 'ERROR_CONTACT_UNSUBSCRIBED'  # no send permission
         ERROR_CONTACT_BLACKHOLED = 'ERROR_CONTACT_BLACKHOLED'  # address blackholed
         ERROR_OTHER = 'ERROR_OTHER'  # Etc
+        TIMEOUT_ERROR = 'Timeout Error' # Timeout from ESP
+        ERROR_UNFINISHED = "ERROR_UNFINISHED" # Load had not finished
+        ERROR_ESP_LOAD_FAIL = 'ERROR_ESP_LOAD_FAIL' # Data not loaded
 
     # Cache the information on the API location on the server
     api_url = ''
@@ -55,7 +58,7 @@ class PyDotMailer(object):
         @param secure Whether or not this should use a secure connection (HTTPS).
                               Always True if the ESP doesn't support an insecure API.
         """
-        
+
         # Remember the HTTPS flag
         self.secure = secure or False  # Cast to a boolean (?)
 
@@ -80,7 +83,7 @@ class PyDotMailer(object):
             raise Exception('Bad username or password')
 
         self.last_exception = None
- 
+
     def unpack_exception(self, e):
         """ unpack the exception thrown by suds. This contains a string code in e.fault.faultstring containing text e.g.
         Server was unable to process request. ---> Campaign not found ERROR_CAMPAIGN_NOT_FOUND
@@ -113,14 +116,14 @@ class PyDotMailer(object):
     def add_contacts_to_address_book(self, address_book_id, s_contacts, wait_to_complete_seconds=False):
         """
         Add a list of contacts to the address book
-        
+
         @param address_book_id the id of the address book
         @param s_contacts containing the contacts to be added. You may upload either a .csv or .xls file.
             It must contain one column with the heading "Email".
             Other columns must will attempt to map to your custom data fields.
         @param wait_to_complete_seconds seconds to wait.
         @return dict  e.g. {'progress_id': 15edf1c4-ce5f-42e3-b182-3b20c880bcf8, 'ok': True, 'result': Finished}
-        
+
         http://www.dotmailer.co.uk/api/address_books/add_contacts_to_address_book_with_progress.aspx
         """
         dict_result = {'ok': True}
@@ -140,10 +143,13 @@ class PyDotMailer(object):
                 sleep_time = 0.2  # start with short sleep between retries
                 while (not return_code or return_code.get('result') == 'NotFinished') and \
                         datetime.utcnow() < dt_wait_until:
-                    dict_result = self.get_contact_import_progress(progress_id)
                     time.sleep(sleep_time)
+                    return_code = self.get_contact_import_progress(progress_id) # E.g: {'error_code': 'ERROR_UNFINISHED', 'ok': False, 'result': NotFinished}
                     # gradually backoff with longer sleep intervals up to a max of 5 seconds
                     sleep_time = min(sleep_time * 2, 5.0)
+
+                if return_code:
+                    dict_result = return_code
 
             dict_result.update({'progress_id': progress_id})
         except Exception as e:
@@ -225,12 +231,17 @@ class PyDotMailer(object):
                                                                        progressID=progress_id)
             if return_code == 'Finished':
                 dict_result = {'ok': True, 'result': return_code}
+            elif return_code == 'RejectedByWatchdog':
+                # API call AddContactsToAddressBookWithProgress has triggered "RejectedByWatchdog" for one client and (we believe) dotMailer blocked the whole upload.
+                # https://support.dotmailer.com/entries/44346548-Data-Watchdog-FAQs
+                # https://support.dotmailer.com/entries/21449156-Better-API-feedback-for-Reject...
+                dict_result = {'ok': False, 'result':  return_code, 'error_code':PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_ESP_LOAD_FAIL}
             else:
-                dict_result = {'ok': False, 'result': return_code}
+                dict_result = {'ok': False, 'result':  return_code, 'error_code':PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_UNFINISHED}
         except Exception as e:
             dict_result = self.unpack_exception(e)
 
-        return dict_result
+        return dict_result # E.g: {'ok': True, 'result': 'Finished'}
 
     def send_campaign_to_contact(self, campaign_id, contact_id, send_date=None):
         """
@@ -274,22 +285,22 @@ class PyDotMailer(object):
                         # The result member is the raw return from dotMailer.
                         'result': (APIContact){
                        ID = 367568124
-                       Email = "test@blackhole.triggeredmessaging.com" 
+                       Email = "test@blackhole.triggeredmessaging.com"
                        AudienceType = "Unknown"
-                       DataFields = 
+                       DataFields =
                           (ContactDataFields){
-                             Keys = 
+                             Keys =
                                 (ArrayOfString){
-                                   string[] = 
+                                   string[] =
                                       "FIRSTNAME",
                                       "FULLNAME",
                                       "GENDER",
                                       "LASTNAME",
                                       "POSTCODE",
                                 }
-                             Values = 
+                             Values =
                                 (ArrayOfAnyType){
-                                   anyType[] = 
+                                   anyType[] =
                                       None,
                                       None,
                                       None,
@@ -299,7 +310,7 @@ class PyDotMailer(object):
                        OptInType = "Unknown"
                        EmailType = "Html"
                        Notes = None
-                     }}                       
+                     }}
             http://www.dotmailer.co.uk/api/contacts/get_contact_by_email.aspx
         """
         dict_result = {'ok': True}
@@ -486,11 +497,11 @@ class PyDotMailer(object):
 
 
 """
-might implement a command line at some point. 
+might implement a command line at some point.
 def main():
-    
+
     try:
-        addressbookid    = sys.argv[2] #should use argparse or similar. 
+        addressbookid    = sys.argv[2] #should use argparse or similar.
         contactsfilename = sys.argv[3]
     except IndexError:
         print "Usage: dotmailer addcontactstoaddressbook addressbookid contactsfilename\n"
@@ -498,6 +509,5 @@ def main():
 
     initial_data = open(contactsfilename, 'r').read()
 
-    
-"""
 
+"""
