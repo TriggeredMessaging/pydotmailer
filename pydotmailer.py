@@ -6,28 +6,20 @@
 #
 # dotMailer API docs are at http://www.dotmailer.co.uk/api/
 # This class was influenced by earllier work: https://github.com/JeremyJones/dotmailer-client/blob/master/dotmailer.py
-
 import base64
 import time
 from datetime import datetime, timedelta
 from suds.client import Client as SOAPClient
-
-__version__ = '0.1.1'
-
+__version__ = '0.1.2'
 try:
     import simplejson as json
 except ImportError:
     import json  # fall back to traditional json module.
-
 import logging
 logger = logging.getLogger(__name__)
-
 from dotmailersudsplugin import DotMailerSudsPlugin
-
-
 class PyDotMailer(object):
     version = '0.1'
-
     class RESULT_FIELDS_ERROR_CODE:
         """
         Defines for RESULT_FIELDS.ERROR_CODE error codes which we're deriving from the string the ESP
@@ -36,6 +28,7 @@ class PyDotMailer(object):
         ERROR_CAMPAIGN_NOT_FOUND = 'ERROR_CAMPAIGN_NOT_FOUND'  # no email template
         ERROR_CAMPAIGN_SENDNOTPERMITTED = 'ERROR_CAMPAIGN_SENDNOTPERMITTED'
             # not paid enough? dotMailer tends to return this if you've run out of campaign credits or a similar issue.
+        ERROR_CAMPAIGN_APINOTPERMITTED = 'ERROR_APIUSAGE_EXCEEDED' #dotmailer returns when you have exceeded api usage
         ERROR_GENERIC = 'ERROR_UNKNOWN'  # code which couldn't be parsed.
         ERROR_CONTACT_NOT_FOUND = 'ERROR_CONTACT_NOT_FOUND'  # no email address?
         ERROR_CONTACT_UNSUBSCRIBED = 'ERROR_CONTACT_UNSUBSCRIBED'  # no send permission
@@ -44,30 +37,24 @@ class PyDotMailer(object):
         TIMEOUT_ERROR = 'Timeout Error' # Timeout from ESP
         ERROR_UNFINISHED = "ERROR_UNFINISHED" # Load had not finished
         ERROR_ESP_LOAD_FAIL = 'ERROR_ESP_LOAD_FAIL' # Data not loaded
-
     # Cache the information on the API location on the server
     api_url = ''
-
     def __init__(self, api_username='', api_password='', secure=True):
         """
         Connect to the dotMailer API at apiconnector.com, using SUDS.
-
         param string $ap_key Not present, because the dotMailer API doesn't support an API key
         @param api_username Your dotMailer user name
         @param api_password Your dotMailer password
         @param secure Whether or not this should use a secure connection (HTTPS).
                               Always True if the ESP doesn't support an insecure API.
         """
-
         # Remember the HTTPS flag
         self.secure = secure or False  # Cast to a boolean (?)
-
         # Choose the dotMailer API URL
         if secure:
             self.api_url = 'https://apiconnector.com/API.asmx?WSDL'
         else:
             self.api_url = 'http://apiconnector.com/API.asmx?WSDL'
-
         # Connect to the API, using SUDS. Log before and after to track the time taken.
         logger.debug("Connecting to web service")
         self.client = SOAPClient(self.api_url,
@@ -75,15 +62,12 @@ class PyDotMailer(object):
         logger.debug("Connected to web service")
         # Change the logging level to CRITICAL to avoid logging errors for every API call which fails via suds
         logging.getLogger('suds.client').setLevel(logging.CRITICAL)
-
         # Remember the username and password. There's no API key to remember with dotMailer
         self.api_username = api_username
         self.api_password = api_password
         if (not api_username) or (not api_password):
             raise Exception('Bad username or password')
-
         self.last_exception = None
-
     def unpack_exception(self, e):
         """ unpack the exception thrown by suds. This contains a string code in e.fault.faultstring containing text e.g.
         Server was unable to process request. ---> Campaign not found ERROR_CAMPAIGN_NOT_FOUND
@@ -103,6 +87,8 @@ class PyDotMailer(object):
             error_code = PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CAMPAIGN_NOT_FOUND
         elif 'ERROR_CAMPAIGN_SENDNOTPERMITTED' in fault_string:
             error_code = PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CAMPAIGN_SENDNOTPERMITTED
+        elif 'ERROR_APIUSAGE_EXCEEDED' in fault_string:
+            error_code = PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CAMPAIGN_APINOTPERMITTED
         elif 'ERROR_CONTACT_NOT_FOUND' in fault_string:
             error_code = PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CONTACT_NOT_FOUND
         elif 'ERROR_CONTACT_SUPPRESSED' in fault_string:
@@ -112,24 +98,20 @@ class PyDotMailer(object):
             error_code = PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_OTHER
         dict_result = {'ok': False, 'errors': [e.message], 'error_code': error_code}
         return dict_result
-
     def add_contacts_to_address_book(self, address_book_id, s_contacts, wait_to_complete_seconds=False):
         """
         Add a list of contacts to the address book
-
         @param address_book_id the id of the address book
         @param s_contacts containing the contacts to be added. You may upload either a .csv or .xls file.
             It must contain one column with the heading "Email".
             Other columns must will attempt to map to your custom data fields.
         @param wait_to_complete_seconds seconds to wait.
         @return dict  e.g. {'progress_id': 15edf1c4-ce5f-42e3-b182-3b20c880bcf8, 'ok': True, 'result': Finished}
-
         http://www.dotmailer.co.uk/api/address_books/add_contacts_to_address_book_with_progress.aspx
         """
         dict_result = {'ok': True}
         return_code = None
         base64_data = base64.b64encode(s_contacts)
-
         try:
             progress_id = self.client.service.AddContactsToAddressBookWithProgress(username=self.api_username,
                                                                                    password=self.api_password,
@@ -147,16 +129,12 @@ class PyDotMailer(object):
                     return_code = self.get_contact_import_progress(progress_id) # E.g: {'error_code': 'ERROR_UNFINISHED', 'ok': False, 'result': NotFinished}
                     # gradually backoff with longer sleep intervals up to a max of 5 seconds
                     sleep_time = min(sleep_time * 2, 5.0)
-
                 if return_code:
                     dict_result = return_code
-
             dict_result.update({'progress_id': progress_id})
         except Exception as e:
             dict_result = self.unpack_exception(e)
-
         return dict_result
-
     def add_contact_to_address_book(self, address_book_id, email_address, d_fields, email_type="Html",
                                     audience_type="Unknown",
                                     opt_in_type="Unknown"):
@@ -183,23 +161,18 @@ class PyDotMailer(object):
         contact = self.client.factory.create('APIContact')
         del contact.ID
         contact.Email = email_address
-
         # Copy field data into the call
         for field_name in d_fields:
             if field_name != 'email' and d_fields.get(field_name):
                 contact.DataFields.Keys[0].append(field_name)
                 contact.DataFields.Values[0].append(d_fields.get(field_name))
-
         # remove some empty values that will upset suds/dotMailer
         ####del contact.AudienceType
         ####del contact.OptInType
-
         contact.AudienceType = audience_type
         contact.OptInType = opt_in_type
         contact.EmailType = email_type
-
         #### logging.getLogger('suds.client').setLevel(logging.DEBUG)
-
         try:
             created_contact = self.client.service.AddContactToAddressBook(username=self.api_username,
                                                                           password=self.api_password,
@@ -217,7 +190,6 @@ class PyDotMailer(object):
         except Exception as e:
             dict_result = self.unpack_exception(e)
         return dict_result
-
     def get_contact_import_progress(self, progress_id):
         """
         @param progress_id the progress_id from add_contacts_to_address_book
@@ -240,9 +212,7 @@ class PyDotMailer(object):
                 dict_result = {'ok': False, 'result':  return_code, 'error_code':PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_UNFINISHED}
         except Exception as e:
             dict_result = self.unpack_exception(e)
-
         return dict_result # E.g: {'ok': True, 'result': 'Finished'}
-
     def send_campaign_to_contact(self, campaign_id, contact_id, send_date=None):
         """
         @param campaign_id
@@ -269,12 +239,9 @@ class PyDotMailer(object):
             if return_code:
                 # return code, which means an error
                 dict_result = {'ok': False, 'result': return_code}
-
         except Exception as e:
             dict_result = self.unpack_exception(e)
-
         return dict_result
-
     def get_contact_by_email(self, email):
         """
         @param email email address to search for.
@@ -320,35 +287,28 @@ class PyDotMailer(object):
                                                                 password=self.api_password,
                                                                 email=email)
             dict_result = {'ok': True, 'result': return_code}
-
             if dict_result.get('ok'):
                 # create a dictionary with structure { field_name: field_value }
                 try:
                     data_fields = dict_result.get('result').DataFields
                     d_fields = self._clean_returned_data_fields(data_fields=data_fields)
-
                     dict_result.update({'d_fields': d_fields})
                 except:
                     logger.exception("Exception unpacking fields in GetContactByEmail for email=%s" % email)
                     # log additional info separately in case something bad has happened
                     # which'll cause this logging line to raise.
                     logger.error("Further info: data_fields=%s" % data_fields)
-
             contact_id = return_code.ID
             dict_result.update({'contact_id': contact_id})
             returned_email_address = return_code.Email
             dict_result.update({'email': returned_email_address})
-
         except Exception as e:
             dict_result = self.unpack_exception(e)
-
             if dict_result.get('error_code') == PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CONTACT_NOT_FOUND:
                 pass  # ignore these expected errors
             else:
                 logger.exception("Exception in GetContactByEmail")
-
         return dict_result
-
     def dt_to_iso_date(self, dt):
         """ convert a python datetime to an iso date, e.g. "2012-03-28T19:51:00"
         ready to send via SOAP
@@ -360,7 +320,6 @@ class PyDotMailer(object):
             logger.exception('Exception converting dt to iso')
             iso_dt = None
         return iso_dt
-
     def _clean_returned_data_fields(self, data_fields):
         """
         Case 1886: If there's an empty first name/last name key, then dotMailer fails to return a value,
@@ -388,7 +347,6 @@ class PyDotMailer(object):
                 name_index += 1 # Next key
         """
         d_fields = {}
-
         data_fields_keys = data_fields.Keys[0]
         data_fields_values = data_fields.Values[0]
         # Case 1886: If there's an empty first name/last name key, then dotMailer fails to return a value,
@@ -422,7 +380,6 @@ class PyDotMailer(object):
                 logger.debug(idx, field_name, data_fields_values[idx])
                 d_fields.update({field_name: data_fields_values[idx]})
         return d_fields
-
     def get_contact_by_id(self, contact_id):
         """
         @param contact_id - id to search for
@@ -467,47 +424,36 @@ class PyDotMailer(object):
             return_code = self.client.service.GetContactById(username=self.api_username, password=self.api_password,
                                                              id=contact_id)
             dict_result = {'ok': True, 'result': return_code}
-
             if dict_result.get('ok'):
                 # create a dictionary with structure { field_name: field_value }
                 try:
                     d_fields = {}
                     data_fields = dict_result.get('result').DataFields
-
                     d_fields = self._clean_returned_data_fields(data_fields=data_fields)
-
                     dict_result.update({'d_fields': d_fields })
                 except:
                     logger.exception("Exception unpacking fields in GetContactById for id=%s" % contact_id)
                     # log additional info separately in case something bad has happened
                     # which'll cause this logging line to raise.
                     logger.error("Further info: data_fields=%s" % data_fields)
-
             contact_id = return_code.ID
             dict_result.update({'contact_id': contact_id})
             returned_email_address = return_code.Email
             dict_result.update({'email': returned_email_address})
-
         except Exception as e:
             dict_result = self.unpack_exception(e)
             if dict_result.get('error_code') == PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CONTACT_NOT_FOUND:
                 pass  # Don't log these expected errors
-
         return dict_result
-
-
 """
 might implement a command line at some point.
 def main():
-
     try:
         addressbookid    = sys.argv[2] #should use argparse or similar.
         contactsfilename = sys.argv[3]
     except IndexError:
         print "Usage: dotmailer addcontactstoaddressbook addressbookid contactsfilename\n"
         sys.exit(1)
-
     initial_data = open(contactsfilename, 'r').read()
-
-
 """
+
