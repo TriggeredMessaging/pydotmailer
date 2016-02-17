@@ -28,7 +28,7 @@ class PyDotMailer(object):
         ERROR_CAMPAIGN_NOT_FOUND = 'ERROR_CAMPAIGN_NOT_FOUND'  # no email template
         ERROR_CAMPAIGN_SENDNOTPERMITTED = 'ERROR_CAMPAIGN_SENDNOTPERMITTED'
             # not paid enough? dotMailer tends to return this if you've run out of campaign credits or a similar issue.
-        ERROR_CAMPAIGN_APINOTPERMITTED = 'ERROR_APIUSAGE_EXCEEDED' #dotmailer returns when you have exceeded api usage
+        ERROR_CAMPAIGN_APINOTPERMITTED = 'ERROR_CAMPAIGN_APINOTPERMITTED' # e,g, exceeded dotmailer API limits (API_USAGE_EXCEEDED)
         ERROR_GENERIC = 'ERROR_UNKNOWN'  # code which couldn't be parsed.
         ERROR_CONTACT_NOT_FOUND = 'ERROR_CONTACT_NOT_FOUND'  # no email address?
         ERROR_CONTACT_UNSUBSCRIBED = 'ERROR_CONTACT_UNSUBSCRIBED'  # no send permission
