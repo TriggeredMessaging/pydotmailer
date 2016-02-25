@@ -304,8 +304,11 @@ class PyDotMailer(object):
             dict_result.update({'email': returned_email_address})
         except Exception as e:
             dict_result = self.unpack_exception(e)
-            if dict_result.get('error_code') == PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CONTACT_NOT_FOUND:
+            error_code = dict_result.get("error_code")
+            if error_code == PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CONTACT_NOT_FOUND:
                 pass  # ignore these expected errors
+            elif error_code == PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CAMPAIGN_APINOTPERMITTED:
+                pass
             else:
                 logger.exception("Exception in GetContactByEmail")
         return dict_result
@@ -442,8 +445,11 @@ class PyDotMailer(object):
             dict_result.update({'email': returned_email_address})
         except Exception as e:
             dict_result = self.unpack_exception(e)
-            if dict_result.get('error_code') == PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CONTACT_NOT_FOUND:
+            error_code = dict_result.get('error_code')
+            if error_code == PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CONTACT_NOT_FOUND:
                 pass  # Don't log these expected errors
+            elif error_code == PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CAMPAIGN_APINOTPERMITTED:
+                pass
         return dict_result
 """
 might implement a command line at some point.
