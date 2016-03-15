@@ -39,6 +39,8 @@ class PyDotMailer(object):
         ERROR_ESP_LOAD_FAIL = 'ERROR_ESP_LOAD_FAIL' # Data not loaded
     # Cache the information on the API location on the server
     api_url = ''
+
+
     def __init__(self, api_username='', api_password='', secure=True):
         """
         Connect to the dotMailer API at apiconnector.com, using SUDS.
@@ -68,6 +70,8 @@ class PyDotMailer(object):
         if (not api_username) or (not api_password):
             raise Exception('Bad username or password')
         self.last_exception = None
+
+
     def unpack_exception(self, e):
         """ unpack the exception thrown by suds. This contains a string code in e.fault.faultstring containing text e.g.
         Server was unable to process request. ---> Campaign not found ERROR_CAMPAIGN_NOT_FOUND
@@ -98,6 +102,8 @@ class PyDotMailer(object):
             error_code = PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_OTHER
         dict_result = {'ok': False, 'errors': [e.message], 'error_code': error_code}
         return dict_result
+
+
     def add_contacts_to_address_book(self, address_book_id, s_contacts, wait_to_complete_seconds=False):
         """
         Add a list of contacts to the address book
@@ -135,6 +141,8 @@ class PyDotMailer(object):
         except Exception as e:
             dict_result = self.unpack_exception(e)
         return dict_result
+
+
     def add_contact_to_address_book(self, address_book_id, email_address, d_fields, email_type="Html",
                                     audience_type="Unknown",
                                     opt_in_type="Unknown"):
@@ -190,6 +198,8 @@ class PyDotMailer(object):
         except Exception as e:
             dict_result = self.unpack_exception(e)
         return dict_result
+
+
     def get_contact_import_progress(self, progress_id):
         """
         @param progress_id the progress_id from add_contacts_to_address_book
@@ -202,17 +212,21 @@ class PyDotMailer(object):
                                                                        password=self.api_password,
                                                                        progressID=progress_id)
             if return_code == 'Finished':
-                dict_result = {'ok': True, 'result': return_code}
+                dict_result = {'ok': True, 'result': return_code, 'errors': [' Load OK. See report at https://r1-app.dotmailer.com/Contacts/Import/WatchdogReport.aspx?g=%s ' % progress_id] }
             elif return_code == 'RejectedByWatchdog':
                 # API call AddContactsToAddressBookWithProgress has triggered "RejectedByWatchdog" for one client and (we believe) dotMailer blocked the whole upload.
                 # https://support.dotmailer.com/entries/44346548-Data-Watchdog-FAQs
                 # https://support.dotmailer.com/entries/21449156-Better-API-feedback-for-Reject...
-                dict_result = {'ok': False, 'result':  return_code, 'error_code':PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_ESP_LOAD_FAIL}
+                dict_result = {'ok': False, 'result':  return_code, 'error_code':PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_ESP_LOAD_FAIL,
+                               'errors': [' Load Fail. See report at https://r1-app.dotmailer.com/Contacts/Import/WatchdogReport.aspx?g=%s ' % progress_id]}
             else:
-                dict_result = {'ok': False, 'result':  return_code, 'error_code':PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_UNFINISHED}
+                dict_result = {'ok': False, 'result':  return_code, 'error_code':PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_UNFINISHED,
+                               'errors': [' Load Unfinished. See report at https://r1-app.dotmailer.com/Contacts/Import/WatchdogReport.aspx?g=%s ' % progress_id]}
         except Exception as e:
             dict_result = self.unpack_exception(e)
-        return dict_result # E.g: {'ok': True, 'result': 'Finished'}
+        return dict_result # E.g: {'ok': True, 'result': Finished, 'errors': [u'<a href="https://r1-app.dotmailer.com/Contacts/Import/WatchdogReport.aspx?g=d82602bb-adfb-4e2d-aabc-5fb77af2ae3d">Load OK Report</a>']}
+
+
     def send_campaign_to_contact(self, campaign_id, contact_id, send_date=None):
         """
         @param campaign_id
@@ -242,6 +256,8 @@ class PyDotMailer(object):
         except Exception as e:
             dict_result = self.unpack_exception(e)
         return dict_result
+
+
     def get_contact_by_email(self, email):
         """
         @param email email address to search for.
@@ -312,6 +328,8 @@ class PyDotMailer(object):
             else:
                 logger.exception("Exception in GetContactByEmail")
         return dict_result
+
+
     def dt_to_iso_date(self, dt):
         """ convert a python datetime to an iso date, e.g. "2012-03-28T19:51:00"
         ready to send via SOAP
@@ -323,6 +341,8 @@ class PyDotMailer(object):
             logger.exception('Exception converting dt to iso')
             iso_dt = None
         return iso_dt
+
+
     def _clean_returned_data_fields(self, data_fields):
         """
         Case 1886: If there's an empty first name/last name key, then dotMailer fails to return a value,
@@ -383,6 +403,8 @@ class PyDotMailer(object):
                 logger.debug(idx, field_name, data_fields_values[idx])
                 d_fields.update({field_name: data_fields_values[idx]})
         return d_fields
+
+
     def get_contact_by_id(self, contact_id):
         """
         @param contact_id - id to search for
@@ -451,6 +473,8 @@ class PyDotMailer(object):
             elif error_code == PyDotMailer.RESULT_FIELDS_ERROR_CODE.ERROR_CAMPAIGN_APINOTPERMITTED:
                 pass
         return dict_result
+
+
 """
 might implement a command line at some point.
 def main():
